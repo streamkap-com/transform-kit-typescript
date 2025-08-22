@@ -101,7 +101,7 @@ npm test
 
 ### 5. Deploy to Streamkap
 
-1. **Create your transform** in Streamkap web interface
+1. **Create your transform** in Streamkap Web App
 2. **Navigate to Implementation tab** 
 3. **Copy entire contents** of your generated file:
    - For value transforms: `valueTransform.js`
@@ -170,7 +170,7 @@ transforms/                          # Generated output files
 vim src/OrderTransformer.ts
 
 # 2. Add npm dependencies as needed
-npm install moment axios uuid
+npm install moment lodash uuid
 
 # 3. Build and test
 npm run build
@@ -210,8 +210,6 @@ Includes 83 tests covering:
 Run tests: `npm test`
 
 ## Usage notes
-- Build is fast (~2 seconds)
-- Tests run in ~1.8 seconds
 - You might see npm warnings about deprecated packages during install - these don't affect functionality
 - Generated files are readable JavaScript if you need to debug
 
@@ -238,7 +236,7 @@ Generates code for JavaScript-based Streamkap transform types:
 - Organized by transform type
 
 **Build:**
-- Fast TypeScript compilation with esbuild
+- TypeScript compilation with esbuild
 - Automatic dependency bundling
 - Multiple output formats available
 
@@ -246,7 +244,7 @@ Generates code for JavaScript-based Streamkap transform types:
 
 ```bash
 # Only pure JavaScript libraries (no native extensions)
-npm install moment lodash uuid axios
+npm install moment lodash uuid
 
 # Dependencies automatically get bundled into generated files
 npm run build
@@ -256,7 +254,7 @@ npm run build
 
 ### Dependency Requirements
 **NOT Supported**: Native extensions, binaries, or Node.js-specific APIs  
-**Fully Supported**: Pure JavaScript libraries (moment, lodash, axios, uuid, etc.)
+**Fully Supported**: Pure JavaScript libraries (moment, lodash, uuid, etc.)
 
 ### Deployment Architecture
 **Self-Contained**: Each generated file includes ALL dependencies bundled (no external requires)  
