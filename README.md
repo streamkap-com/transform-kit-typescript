@@ -4,7 +4,7 @@ TypeScript development environment for building Streamkap transforms with npm pa
 
 ## What you get
 - Use npm packages like moment.js, lodash, uuid in your transforms
-- Full test suite (83 tests) to catch issues before deployment
+- Full test suite to catch issues before deployment
 - Self-contained output files with all dependencies bundled
 - Support for all Streamkap transform types (map_filter, fan_out, enrich_async, un_nesting)
 
@@ -201,7 +201,7 @@ function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
 
 ## Testing
 
-Includes 83 tests covering:
+Includes tests covering:
 
 - Core business logic (`OrderTransformer.test.ts`)
 - Generated JavaScript files (`GeneratedTransforms.test.ts`)
