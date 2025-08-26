@@ -2,11 +2,11 @@
 
 **Build Streamkap transforms with TypeScript + npm packages** → Get **self-contained JavaScript files** ready for deployment.
 
-## 🏪 **Example Use Case: Multi-Channel Order Processing**
-This starter kit demonstrates **order processing from multiple channels** (Express & RPOS) - a common e-commerce/retail scenario where:
-- **Different order formats** (`OrderType1` vs `OrderType2`) need to be unified into `MergedOrder`  
-- **Orders flow through multiple channels** (express delivery, restaurant POS systems)
-- **Customer data is enriched** and validated across different input sources
+## 🏪 **Example Use Case: Data Unification and Cleaning**
+Example of **cleaning and unifying multiple semi-structured data entities into a single common model** where:
+- **Different data formats** (`OrderType1` vs `OrderType2`) need to be unified into `MergedOrder`  
+- **Data flows from multiple sources** with varying structures and field names
+- **Records are enriched** and validated across different input sources
 - **Processing metadata is added** (timestamps, UUIDs, validation flags) using npm libraries
 
 ## 📋 Prerequisites
