@@ -23,31 +23,48 @@ export class KeyTransform {
      */
     public transform(valueObject: any, keyObject: any, topic: string, timestamp: number): string {
         try {
+            // Input validation
+            if (!valueObject || typeof valueObject !== 'object') {
+                console.warn('Invalid valueObject for key transformation');
+                return this.sanitizeKey(`invalid-value-${keyObject}`);
+            }
+            
+            if (!topic || typeof topic !== 'string') {
+                console.warn('Invalid topic for key transformation');
+                return this.sanitizeKey(`invalid-topic-${keyObject}`);
+            }
+            
+            // Normalize timestamp
+            const normalizedTimestamp = this.normalizeTimestamp(timestamp);
+            
             // Example key transformation strategies:
             
             // Strategy 1: Prefix based on record type
-            if (valueObject && valueObject.type) {
-                return `${valueObject.type}-${keyObject}`;
+            if (valueObject.type && typeof valueObject.type === 'string') {
+                const result = `${valueObject.type}-${keyObject}`;
+                return this.sanitizeKey(result);
             }
             
             // Strategy 2: Date-based partitioning
-            const datePrefix = moment(timestamp).format('YYYY-MM-DD');
+            const datePrefix = moment(normalizedTimestamp).format('YYYY-MM-DD');
             
             // Strategy 3: Hash-based routing (for load distribution)
-            if (valueObject && valueObject.user_id) {
-                const userHash = this.simpleHash(valueObject.user_id) % 10;
-                return `${datePrefix}-partition-${userHash}-${keyObject}`;
+            if (valueObject.user_id) {
+                const userHash = this.simpleHash(String(valueObject.user_id)) % 10;
+                const result = `${datePrefix}-partition-${userHash}-${keyObject}`;
+                return this.sanitizeKey(result);
             }
             
             // Strategy 4: Topic-specific prefixing
             const topicPrefix = topic.replace(/[^a-zA-Z0-9]/g, '_');
-            return `${topicPrefix}-${datePrefix}-${keyObject}`;
+            const result = `${topicPrefix}-${datePrefix}-${keyObject}`;
+            return this.sanitizeKey(result);
             
         } catch (error) {
             console.error('Key transformation failed:', error);
             
-            // Fallback: return original key with error marker
-            return `error-${keyObject}`;
+            // Fallback: return sanitized key with error marker
+            return this.sanitizeKey(`error-${keyObject}`);
         }
     }
     
@@ -57,26 +74,37 @@ export class KeyTransform {
      */
     public transformWithContext(valueObject: any, keyObject: any, topic: string, timestamp: number): string {
         try {
+            // Input validation
+            if (!valueObject || typeof valueObject !== 'object') {
+                return this.transform(valueObject, keyObject, topic, timestamp);
+            }
+            
+            // Normalize timestamp
+            const normalizedTimestamp = this.normalizeTimestamp(timestamp);
+            
             // Example: Multi-tenant key strategy
-            if (valueObject && valueObject.tenant_id) {
+            if (valueObject.tenant_id && typeof valueObject.tenant_id === 'string') {
                 const tenantPrefix = `tenant-${valueObject.tenant_id}`;
-                const datePrefix = moment(timestamp).format('YYYY-MM');
-                return `${tenantPrefix}-${datePrefix}-${keyObject}`;
+                const datePrefix = moment(normalizedTimestamp).format('YYYY-MM');
+                const result = `${tenantPrefix}-${datePrefix}-${keyObject}`;
+                return this.sanitizeKey(result);
             }
             
             // Example: Priority-based routing
-            if (valueObject && valueObject.priority) {
+            if (valueObject.priority && typeof valueObject.priority === 'string') {
                 const priorityPrefix = valueObject.priority === 'high' ? 'pri-high' : 'pri-normal';
-                return `${priorityPrefix}-${keyObject}`;
+                const result = `${priorityPrefix}-${keyObject}`;
+                return this.sanitizeKey(result);
             }
             
             // Example: Geographic routing
-            if (valueObject && valueObject.region) {
-                return `${valueObject.region}-${keyObject}`;
+            if (valueObject.region && typeof valueObject.region === 'string') {
+                const result = `${valueObject.region}-${keyObject}`;
+                return this.sanitizeKey(result);
             }
             
             // Fallback to simple transformation
-            return this.transform(valueObject, keyObject, topic, timestamp);
+            return this.transform(valueObject, keyObject, topic, normalizedTimestamp);
             
         } catch (error) {
             console.error('Context key transformation failed:', error);
@@ -90,26 +118,49 @@ export class KeyTransform {
      */
     public transformForFanOut(valueObject: any, keyObject: any, topic: string, timestamp: number): string {
         try {
+            // Input validation
+            if (!valueObject || typeof valueObject !== 'object') {
+                return this.sanitizeKey(`fanout-invalid-${keyObject}`);
+            }
+            
             // For fan-out, you often want consistent keys across all output topics
             
             // Strategy 1: Use business identifier
-            if (valueObject && valueObject.id) {
-                return `fanout-${valueObject.id}`;
+            if (valueObject.id) {
+                const result = `fanout-${valueObject.id}`;
+                return this.sanitizeKey(result);
             }
             
             // Strategy 2: Composite key from multiple fields
-            if (valueObject && valueObject.customer_id && valueObject.order_id) {
-                return `${valueObject.customer_id}-${valueObject.order_id}`;
+            if (valueObject.customer_id && valueObject.order_id) {
+                const result = `${valueObject.customer_id}-${valueObject.order_id}`;
+                return this.sanitizeKey(result);
             }
             
             // Strategy 3: Hash of the entire record for uniqueness
-            const recordHash = this.simpleHash(JSON.stringify(valueObject));
-            return `fanout-${recordHash}-${keyObject}`;
+            const recordHash = this.simpleHash(this.safeStringify(valueObject));
+            const result = `fanout-${recordHash}-${keyObject}`;
+            return this.sanitizeKey(result);
             
         } catch (error) {
             console.error('Fan-out key transformation failed:', error);
-            return `fanout-error-${keyObject}`;
+            return this.sanitizeKey(`fanout-error-${keyObject}`);
         }
+    }
+    
+    /**
+     * Normalize timestamp to ensure consistent format
+     */
+    private normalizeTimestamp(timestamp: number): number {
+        // Ensure timestamp is in milliseconds
+        if (typeof timestamp !== 'number' || isNaN(timestamp)) {
+            return Date.now();
+        }
+        
+        if (timestamp < 1000000000000) { // Less than year 2001 in milliseconds
+            return timestamp * 1000; // Convert from seconds to milliseconds
+        }
+        return timestamp;
     }
     
     /**
@@ -117,13 +168,17 @@ export class KeyTransform {
      * Replace with more sophisticated hashing if needed
      */
     private simpleHash(str: string): number {
+        if (!str || typeof str !== 'string') {
+            return 0;
+        }
+        
         let hash = 0;
         if (str.length === 0) return hash;
         
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32-bit integer
+            hash = hash | 0; // Convert to 32-bit signed integer
         }
         
         return Math.abs(hash);
@@ -145,10 +200,19 @@ export class KeyTransform {
         }
         
         // Check for problematic characters that might cause issues
-        const problematicChars = /[<>:"/\\|?*\x00-\x1f]/;
+        const problematicChars = /[<>:"/\\|?*]/u;
         if (problematicChars.test(key)) {
             console.warn(`Key contains problematic characters: ${key}`);
             return false;
+        }
+        
+        // Check for control characters separately
+        for (let i = 0; i < key.length; i++) {
+            const charCode = key.charCodeAt(i);
+            if (charCode >= 0 && charCode <= 31) {
+                console.warn(`Key contains control character: ${key}`);
+                return false;
+            }
         }
         
         return true;
@@ -161,7 +225,10 @@ export class KeyTransform {
         if (!key) return 'empty-key';
         
         // Replace problematic characters
-        let sanitized = key.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+        let sanitized = key.replace(/[<>:"/\\|?*]/gu, '_');
+        
+        // Replace control characters
+        sanitized = sanitized.replace(/[\x00-\x1f]/g, '_');
         
         // Truncate if too long
         if (sanitized.length > 255) {
@@ -169,5 +236,26 @@ export class KeyTransform {
         }
         
         return sanitized;
+    }
+    
+    /**
+     * Safe JSON stringify that handles circular references
+     */
+    private safeStringify(obj: any): string {
+        try {
+            const seen = new Set();
+            return JSON.stringify(obj, (key, value) => {
+                if (typeof value === 'object' && value !== null) {
+                    if (seen.has(value)) {
+                        return '[Circular]';
+                    }
+                    seen.add(value);
+                }
+                return value;
+            });
+        } catch (error) {
+            console.warn('Failed to stringify object:', error);
+            return '[Unstringifiable]';
+        }
     }
 }

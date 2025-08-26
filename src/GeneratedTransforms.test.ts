@@ -4,9 +4,9 @@
  * Works with both example-based and template-based structures
  */
 
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { OrderType1 } from './OrderType1';
 import { OrderType2 } from './OrderType2';
 import { Customer } from './Customer';
@@ -43,39 +43,96 @@ function detectProjectStructure(): 'template' | 'example' {
     return existsSync('src/templates/index.ts') ? 'template' : 'example';
 }
 
-// Helper to execute transform in Node.js subprocess for isolation
-function executeTransformSafely(filePath: string, functionName: string, inputData: any, keyObject: any = 'test-key', topic: string = 'test-topic'): any {
-    const transformCode = readFileSync(filePath, 'utf8');
+// Helper to safely execute transform using VM to avoid template literal collisions
+function executeTransformSafely(
+    filePath: string, 
+    functionName: string, 
+    inputData: any, 
+    keyObject: any = 'test-key', 
+    topic: string = 'test-topic',
+    isAsync: boolean = false
+): any {
+    // Create a VM-based runner script to safely execute the transform
+    const runnerScript = `
+const fs = require('fs');
+const vm = require('vm');
+
+try {
+    // Read the transform bundle
+    const transformCode = fs.readFileSync(${JSON.stringify(filePath)}, 'utf8');
     
-    // Create a test script that requires the transform and executes it
-    const testScript = `
-// Load the transform code
-${transformCode}
-
-// Execute the transform
-const result = ${functionName}(${JSON.stringify(inputData)}, "${keyObject}", "${topic}", ${Date.now()});
-
-// Output result as JSON
-console.log(JSON.stringify(result, null, 2));
+    // Create a VM context with necessary globals
+    const context = {
+        console: console,
+        require: require,
+        process: process,
+        Buffer: Buffer,
+        setTimeout: setTimeout,
+        setInterval: setInterval,
+        clearTimeout: clearTimeout,
+        clearInterval: clearInterval,
+        crypto: require('crypto'),
+        global: {},
+        exports: {},
+        module: { exports: {} }
+    };
+    
+    // Execute the transform code in the VM context
+    const script = new vm.Script(transformCode);
+    script.runInNewContext(context);
+    
+    // Get the transform function from context
+    const transformFn = context[${JSON.stringify(functionName)}];
+    if (typeof transformFn !== 'function') {
+        throw new Error('Transform function ' + ${JSON.stringify(functionName)} + ' not found or not a function');
+    }
+    
+    // Execute the transform
+    const inputData = ${JSON.stringify(inputData)};
+    const keyObject = ${JSON.stringify(keyObject)};
+    const topic = ${JSON.stringify(topic)};
+    const timestamp = ${Date.now()};
+    
+    ${isAsync ? 
+        '(async () => { const result = await transformFn(inputData, keyObject, topic, timestamp); console.log(JSON.stringify(result, null, 2)); })();' : 
+        'const result = transformFn(inputData, keyObject, topic, timestamp); console.log(JSON.stringify(result, null, 2));'
+    }
+    
+} catch (error) {
+    console.error('VM Transform execution error:', error.message);
+    process.exit(1);
+}
 `;
 
+    let output = '';
+    let testFile = '';
+    
     try {
-        // Write test script to temporary file and execute
-        const testFile = join(process.cwd(), 'temp-transform-test.js');
-        require('fs').writeFileSync(testFile, testScript);
+        // Write runner script to temporary file
+        testFile = join(process.cwd(), `temp-vm-runner-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.js`);
+        writeFileSync(testFile, runnerScript);
         
-        const output = execSync(`node ${testFile}`, { 
+        // Execute using execFileSync for better security
+        output = execFileSync('node', [testFile], {
             encoding: 'utf8',
-            stdio: ['pipe', 'pipe', 'pipe']
+            stdio: ['pipe', 'pipe', 'pipe'],
+            timeout: 10000
         });
         
         // Clean up
-        require('fs').unlinkSync(testFile);
+        unlinkSync(testFile);
         
-        return JSON.parse(output.trim());
+        const result = JSON.parse(output.trim());
+        return result;
     } catch (error) {
+        // Clean up on error
+        if (testFile && existsSync(testFile)) {
+            try { unlinkSync(testFile); } catch (e) { /* ignore cleanup errors */ }
+        }
+        
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('Transform execution error:', errorMessage);
+        console.error('VM Transform execution error:', errorMessage);
+        console.error('Raw output:', output);
         throw error;
     }
 }
@@ -234,45 +291,11 @@ describe('Generated Transform Functions', () => {
         });
         
         it('should handle async transformation', async () => {
-            // For async transforms, we need to modify our execution approach
-            const transformCode = readFileSync(transformPath, 'utf8');
+            // Use the safer VM-based runner for async transforms
+            const result = executeTransformSafely(transformPath, '_streamkap_transform', mockOrderType1, 'test-key', 'test-topic', true);
             
-            // Create async test script
-            const testScript = `
-// Load the transform code
-${transformCode}
-
-// Execute async transform
-(async () => {
-    try {
-        const result = await _streamkap_transform(${JSON.stringify(mockOrderType1)}, "test-key", "test-topic", ${Date.now()});
-        console.log(JSON.stringify(result, null, 2));
-    } catch (error) {
-        console.error('Async transform error:', error.message);
-        process.exit(1);
-    }
-})();
-`;
-            
-            const testFile = join(process.cwd(), 'temp-async-test.js');
-            require('fs').writeFileSync(testFile, testScript);
-            
-            try {
-                const output = execSync(`node ${testFile}`, { 
-                    encoding: 'utf8',
-                    timeout: 10000 // 10 second timeout for async operations
-                });
-                
-                const result = JSON.parse(output.trim());
-                expect(result).toBeDefined();
-                expect(result).not.toBeNull();
-                
-            } finally {
-                // Clean up
-                if (require('fs').existsSync(testFile)) {
-                    require('fs').unlinkSync(testFile);
-                }
-            }
+            expect(result).toBeDefined();
+            expect(result).not.toBeNull();
         }, 15000); // 15 second Jest timeout
     });
     

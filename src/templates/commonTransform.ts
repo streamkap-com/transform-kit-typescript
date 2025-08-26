@@ -15,9 +15,10 @@ export class CommonTransform {
      * Transform your data structure here
      * Replace InputType and OutputType with your actual data interfaces
      */
-    public transformRecord(inputRecord: any): any {
+    public transformRecord(inputRecord: any, timestamp?: number): any {
         // Example transformation - replace with your business logic
         const now = moment();
+        const normalizedTimestamp = this.normalizeTimestamp(timestamp || Date.now());
         
         // Example using lodash for data manipulation
         const cleanedRecord = _.omitBy(inputRecord, _.isUndefined);
@@ -36,6 +37,7 @@ export class CommonTransform {
             processing_id: processingId,
             has_valid_data: hasValidData,
             field_count: _.keys(cleanedRecord).length,
+            normalized_timestamp: normalizedTimestamp,
             
             // Add version for tracking
             transform_version: '1.0.0'
@@ -43,16 +45,216 @@ export class CommonTransform {
     }
     
     /**
+     * Normalize timestamp to ensure consistent format
+     */
+    public normalizeTimestamp(timestamp: number): number {
+        // Ensure timestamp is in milliseconds
+        if (timestamp < 1000000000000) { // Less than year 2001 in milliseconds
+            return timestamp * 1000; // Convert from seconds to milliseconds
+        }
+        return timestamp;
+    }
+    
+    /**
+     * Sanitize topic name to be Kafka-compliant
+     */
+    public sanitizeTopicName(topicName: string): string {
+        if (!topicName || typeof topicName !== 'string') {
+            return 'default-topic';
+        }
+        
+        // Replace invalid characters with hyphens
+        let sanitized = topicName.replace(/[^a-zA-Z0-9._-]/g, '-');
+        
+        // Ensure it doesn't start with a dot
+        if (sanitized.startsWith('.')) {
+            sanitized = 'topic' + sanitized;
+        }
+        
+        // Truncate if too long (Kafka limit is 249 characters)
+        if (sanitized.length > 249) {
+            sanitized = sanitized.substring(0, 246) + '...';
+        }
+        
+        return sanitized;
+    }
+    
+    /**
+     * Enhanced input validation with detailed checks
+     */
+    public validateInput(record: any, keyObject: any, topic: string, timestamp: number): { valid: boolean; errors: string[] } {
+        const errors: string[] = [];
+        
+        // Validate record
+        if (!record || typeof record !== 'object') {
+            errors.push('Record must be a non-null object');
+        }
+        
+        // Validate timestamp
+        if (typeof timestamp !== 'number' || isNaN(timestamp) || timestamp <= 0) {
+            errors.push('Timestamp must be a valid positive number');
+        }
+        
+        // Validate topic
+        if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
+            errors.push('Topic must be a non-empty string');
+        }
+        
+        return { valid: errors.length === 0, errors };
+    }
+    
+    /**
+     * Validate topic name according to Kafka standards
+     */
+    public validateTopicName(topicName: string): boolean {
+        if (!topicName || typeof topicName !== 'string') {
+            return false;
+        }
+        
+        // Kafka topic naming rules
+        const validPattern = /^[a-zA-Z0-9._-]+$/;
+        if (!validPattern.test(topicName)) {
+            return false;
+        }
+        
+        // Length check (Kafka limit is 249 characters)
+        if (topicName.length > 249) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Enhanced error context for better debugging
+     */
+    public createErrorContext(error: any, operation: string, record?: any): any {
+        return {
+            error_message: error instanceof Error ? error.message : String(error),
+            error_operation: operation,
+            error_timestamp: new Date().toISOString(),
+            error_stack: error instanceof Error ? error.stack : undefined,
+            record_id: record?.id || record?._id || record?.order_id || 'unknown',
+            record_type: record?.type || typeof record
+        };
+    }
+    
+    /**
+     * Structured logging with levels
+     */
+    public log(level: 'info' | 'warn' | 'error', message: string, context?: any): void {
+        const logEntry = {
+            level,
+            message,
+            timestamp: new Date().toISOString(),
+            context
+        };
+        
+        switch (level) {
+            case 'error':
+                console.error(JSON.stringify(logEntry));
+                break;
+            case 'warn':
+                console.warn(JSON.stringify(logEntry));
+                break;
+            default:
+                console.log(JSON.stringify(logEntry));
+        }
+    }
+    
+    /**
+     * Memory-efficient data type validation
+     */
+    public validateDataTypes(record: any): { valid: boolean; issues: string[] } {
+        const issues: string[] = [];
+        
+        if (!record || typeof record !== 'object') {
+            issues.push('Record must be an object');
+            return { valid: false, issues };
+        }
+        
+        // Check for common data type issues
+        Object.keys(record).forEach(key => {
+            const value = record[key];
+            
+            // Check for problematic data types that can cause issues
+            if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                try {
+                    JSON.stringify(value); // Test if object is serializable
+                } catch {
+                    issues.push(`Field '${key}' contains non-serializable object`);
+                }
+            }
+            
+            // Check for extremely large strings that could cause memory issues
+            if (typeof value === 'string' && value.length > 100000) {
+                issues.push(`Field '${key}' contains extremely large string (${value.length} chars)`);
+            }
+            
+            // Check for circular references (partial check)
+            if (typeof value === 'object' && value !== null) {
+                const seen = new Set();
+                try {
+                    JSON.stringify(value, (k, v) => {
+                        if (typeof v === 'object' && v !== null) {
+                            if (seen.has(v)) throw new Error('Circular reference');
+                            seen.add(v);
+                        }
+                        return v;
+                    });
+                } catch {
+                    issues.push(`Field '${key}' may contain circular references`);
+                }
+            }
+        });
+        
+        return { valid: issues.length === 0, issues };
+    }
+    
+    /**
+     * Memory optimization - remove undefined values to reduce payload size
+     */
+    public removeUndefinedValues(obj: any): any {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.removeUndefinedValues(item)).filter(item => item !== undefined);
+        }
+        
+        const cleaned: any = {};
+        Object.keys(obj).forEach(key => {
+            const value = obj[key];
+            if (value !== undefined) {
+                cleaned[key] = this.removeUndefinedValues(value);
+            }
+        });
+        
+        return cleaned;
+    }
+    
+    /**
      * Validate input record structure
      * Customize this based on your data requirements
      */
     public validateRecord(record: any): boolean {
-        // Add your validation logic here - flexible for different id field names
-        return Boolean(record && 
-               typeof record === 'object' && 
-               ((record.id && typeof record.id === 'string') || 
-                (record._id && typeof record._id === 'string') ||
-                (record.order_id && typeof record.order_id === 'string')));
+        // Enhanced validation with null checks and type safety
+        if (!record || typeof record !== 'object') {
+            return false;
+        }
+        
+        // Validate required ID fields (flexible for different id field names)
+        const hasValidId = Boolean(
+            (record.id && (typeof record.id === 'string' || typeof record.id === 'number')) || 
+            (record._id && (typeof record._id === 'string' || typeof record._id === 'number')) ||
+            (record.order_id && (typeof record.order_id === 'string' || typeof record.order_id === 'number'))
+        );
+        
+        // Additional validation - check for empty objects
+        const hasValidData = Object.keys(record).length > 0;
+        
+        return hasValidId && hasValidData;
     }
     
     /**
@@ -65,10 +267,13 @@ export class CommonTransform {
             return false;
         }
         
-        // Filter out test records
+        // Filter out test records with enhanced null checking
         const idField = record.id || record._id || record.order_id;
-        if (idField && typeof idField === 'string' && idField.includes('test')) {
-            return false;
+        if (idField) {
+            const idStr = String(idField).toLowerCase();
+            if (idStr.includes('test') || idStr.includes('mock') || idStr.includes('dummy')) {
+                return false;
+            }
         }
         
         // Add more filtering logic here
@@ -82,19 +287,25 @@ export class CommonTransform {
     public getRoutingTopics(record: any, originalTopic: string): string | string[] {
         const topics: string[] = [];
         
+        // Sanitize original topic name
+        const sanitizedOriginalTopic = this.sanitizeTopicName(originalTopic);
+        
         // Example routing logic - customize for your use case
-        if (record.type === 'high_priority') {
-            topics.push('high-priority-records');
+        if (record?.type === 'high_priority') {
+            topics.push(this.sanitizeTopicName('high-priority-records'));
         } else {
-            topics.push('standard-records');
+            topics.push(this.sanitizeTopicName('standard-records'));
         }
         
         // Route errors to special topic
         if (!this.validateRecord(record)) {
-            topics.push('error-records');
+            topics.push(this.sanitizeTopicName('error-records'));
         }
         
-        return topics.length > 1 ? topics : topics[0];
+        // Ensure all topic names are valid
+        const validTopics = topics.filter(topic => this.validateTopicName(topic));
+        
+        return validTopics.length > 1 ? validTopics : validTopics[0] || sanitizedOriginalTopic;
     }
     
     /**
@@ -103,18 +314,39 @@ export class CommonTransform {
      */
     public async enrichRecord(record: any): Promise<any> {
         try {
+            // Validate input before enrichment
+            const validation = this.validateDataTypes(record);
+            if (!validation.valid) {
+                this.log('warn', 'Data validation issues during enrichment', { issues: validation.issues });
+            }
+            
             // Example: simulate API call for enrichment
             // Replace with your actual API calls
-            const enrichmentData = await this.simulateApiCall(record.id);
+            const recordId = record?.id || record?._id || record?.order_id;
+            if (!recordId) {
+                throw new Error('No valid ID found for enrichment');
+            }
             
-            return {
+            const enrichmentData = await this.simulateApiCall(String(recordId));
+            
+            const enrichedRecord = {
                 ...record,
                 enrichment: enrichmentData,
-                enriched_at: new Date().toISOString()
+                enriched_at: new Date().toISOString(),
+                enrichment_version: '1.0.0'
             };
+            
+            // Memory optimization - remove undefined values
+            return this.removeUndefinedValues(enrichedRecord);
+            
         } catch (error) {
-            console.error('Enrichment failed:', error);
-            return record; // Return original on error
+            const errorContext = this.createErrorContext(error, 'enrichRecord', record);
+            this.log('error', 'Enrichment failed', errorContext);
+            return {
+                ...record,
+                enrichment_error: true,
+                ...errorContext
+            };
         }
     }
     
@@ -122,6 +354,12 @@ export class CommonTransform {
      * Flatten nested objects for un_nesting transforms
      */
     public flattenRecord(record: any): any {
+        // Validate input first
+        const validation = this.validateDataTypes(record);
+        if (!validation.valid) {
+            this.log('warn', 'Data validation issues during flattening', { issues: validation.issues });
+        }
+        
         // Example flattening logic - customize for your data structure
         const flattened = { ...record };
         
@@ -141,25 +379,43 @@ export class CommonTransform {
             delete flattened.metadata;
         }
         
-        return {
+        const result = {
             ...flattened,
             flattened_at: new Date().toISOString(),
-            original_structure_preserved: false
+            original_structure_preserved: false,
+            flatten_version: '1.0.0'
         };
+        
+        // Memory optimization
+        return this.removeUndefinedValues(result);
     }
     
     /**
-     * Private helper: Simulate API call
+     * Private helper: Simulate API call with timeout and error handling
      * Replace with your actual API integration
      */
     private async simulateApiCall(id: string): Promise<any> {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
+            // Simulate network timeout
+            const timeout = setTimeout(() => {
+                reject(new Error('API call timeout after 5 seconds'));
+            }, 5000);
+            
             setTimeout(() => {
+                clearTimeout(timeout);
+                
+                // Simulate occasional API failures
+                if (Math.random() < 0.1) { // 10% failure rate for testing
+                    reject(new Error('Simulated API failure'));
+                    return;
+                }
+                
                 resolve({
                     external_id: `ext_${id}`,
                     score: Math.floor(Math.random() * 100),
                     category: 'premium',
-                    enriched_timestamp: new Date().toISOString()
+                    enriched_timestamp: new Date().toISOString(),
+                    api_version: '1.2.3'
                 });
             }, 100);
         });

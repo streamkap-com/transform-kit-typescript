@@ -2,6 +2,13 @@
 
 **Build Streamkap transforms with TypeScript + npm packages** → Get **self-contained JavaScript files** ready for deployment.
 
+## 🏪 **Example Use Case: Multi-Channel Order Processing**
+This starter kit demonstrates **order processing from multiple channels** (Express & RPOS) - a common e-commerce/retail scenario where:
+- **Different order formats** (`OrderType1` vs `OrderType2`) need to be unified into `MergedOrder`  
+- **Orders flow through multiple channels** (express delivery, restaurant POS systems)
+- **Customer data is enriched** and validated across different input sources
+- **Processing metadata is added** (timestamps, UUIDs, validation flags) using npm libraries
+
 ## 📋 Prerequisites
 - Node.js 16+ 
 - Basic TypeScript knowledge
@@ -19,7 +26,7 @@
 
 **For New Project**: Clone this repo and customize
 ```bash
-git clone https://github.com/streamkap-com/transform-kit-typescript && cd transform-kit
+git clone https://github.com/streamkap-com/transform-kit-typescript.git && cd transform-kit-typescript
 npm install && npm run build && npm test
 ```
 
@@ -221,6 +228,8 @@ npx esbuild src/my-transform.ts --bundle --outfile=my-transform.js
 
 ## When to Use Each Option
 
+| Use Case | Recommended Option |
+|----------|-------------------|
 | **New project** | Option 1 (from scratch) |
 | **Existing project** | Option 2 (templates) |  
 | **Minimal setup** | Option 3 (custom) |

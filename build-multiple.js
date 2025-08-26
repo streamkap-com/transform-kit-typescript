@@ -224,20 +224,28 @@ function generateValueTransform(transform, useTemplateStructure = false) {
                 return `// Main transform function for map_filter
 function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     // Map/Filter: Transform and optionally filter records using template structure
-    var transformer = valueTransform;
-    var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
-    
-    return transformedRecord;
+    try {
+        var transformer = valueTransform;
+        var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
+        return transformedRecord;
+    } catch (error) {
+        console.error('Transform failed:', error);
+        return null; // Filter out on error for map_filter
+    }
 }`;
 
             case 'fan_out':
                 return `// Value transform for fan_out using template structure
 function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     // Fan Out: Transform the record that will be sent to multiple topics
-    var transformer = valueTransform;
-    var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
-    
-    return transformedRecord;
+    try {
+        var transformer = valueTransform;
+        var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
+        return transformedRecord;
+    } catch (error) {
+        console.error('Transform failed:', error);
+        return valueObject; // Return original on error for fan_out
+    }
 }`;
 
             case 'enrich_async':
@@ -259,10 +267,14 @@ async function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
                 return `// Un-nesting transform using template structure
 function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     // Un Nesting: Flatten nested objects/arrays
-    var transformer = valueTransform;
-    var transformedRecord = transformer.transformFlatten(valueObject, keyObject, topic, timestamp);
-    
-    return transformedRecord;
+    try {
+        var transformer = valueTransform;
+        var transformedRecord = transformer.transformFlatten(valueObject, keyObject, topic, timestamp);
+        return transformedRecord;
+    } catch (error) {
+        console.error('Un-nesting failed:', error);
+        return valueObject; // Return original on error for un_nesting
+    }
 }`;
 
             default:

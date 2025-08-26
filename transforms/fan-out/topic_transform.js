@@ -1,7 +1,7 @@
 // Streamkap fan_out Transform (JAVASCRIPT)
 // Fan Out - route records to multiple topics
 // Function: topic_transform
-// Generated on: 2025-08-26T08:40:08.709Z
+// Generated on: 2025-08-26T10:04:24.440Z
 // 
 // Implementation details:
 // - Transform type: fan_out
@@ -5783,7 +5783,7 @@ var require_lodash = __commonJS((exports, module) => {
         end = end === undefined2 ? length : end;
         return !start && end >= length ? array : baseSlice(array, start, end);
       }
-      var clearTimeout = ctxClearTimeout || function(id) {
+      var clearTimeout2 = ctxClearTimeout || function(id) {
         return root.clearTimeout(id);
       };
       function cloneBuffer(buffer, isDeep) {
@@ -7632,7 +7632,7 @@ var require_lodash = __commonJS((exports, module) => {
         }
         function cancel() {
           if (timerId !== undefined2) {
-            clearTimeout(timerId);
+            clearTimeout2(timerId);
           }
           lastInvokeTime = 0;
           lastArgs = lastCallTime = lastThis = timerId = undefined2;
@@ -7650,7 +7650,7 @@ var require_lodash = __commonJS((exports, module) => {
               return leadingEdge(lastCallTime);
             }
             if (maxing) {
-              clearTimeout(timerId);
+              clearTimeout2(timerId);
               timerId = setTimeout2(timerExpired, wait);
               return invokeFunc(lastCallTime);
             }
@@ -9300,8 +9300,9 @@ var v4_default = v4;
 
 // src/templates/commonTransform.ts
 var CommonTransform = class {
-  transformRecord(inputRecord) {
+  transformRecord(inputRecord, timestamp) {
     const now = (0, import_moment.default)();
+    const normalizedTimestamp = this.normalizeTimestamp(timestamp || Date.now());
     const cleanedRecord = import_lodash.default.omitBy(inputRecord, import_lodash.default.isUndefined);
     const hasValidData = import_lodash.default.has(cleanedRecord, "id") && !import_lodash.default.isEmpty(cleanedRecord.id);
     const processingId = v4_default();
@@ -9311,49 +9312,202 @@ var CommonTransform = class {
       processing_id: processingId,
       has_valid_data: hasValidData,
       field_count: import_lodash.default.keys(cleanedRecord).length,
+      normalized_timestamp: normalizedTimestamp,
       transform_version: "1.0.0"
     });
   }
+  normalizeTimestamp(timestamp) {
+    if (timestamp < 1e12) {
+      return timestamp * 1e3;
+    }
+    return timestamp;
+  }
+  sanitizeTopicName(topicName) {
+    if (!topicName || typeof topicName !== "string") {
+      return "default-topic";
+    }
+    let sanitized = topicName.replace(/[^a-zA-Z0-9._-]/g, "-");
+    if (sanitized.startsWith(".")) {
+      sanitized = "topic" + sanitized;
+    }
+    if (sanitized.length > 249) {
+      sanitized = sanitized.substring(0, 246) + "...";
+    }
+    return sanitized;
+  }
+  validateInput(record, keyObject, topic, timestamp) {
+    const errors = [];
+    if (!record || typeof record !== "object") {
+      errors.push("Record must be a non-null object");
+    }
+    if (typeof timestamp !== "number" || isNaN(timestamp) || timestamp <= 0) {
+      errors.push("Timestamp must be a valid positive number");
+    }
+    if (!topic || typeof topic !== "string" || topic.trim().length === 0) {
+      errors.push("Topic must be a non-empty string");
+    }
+    return {valid: errors.length === 0, errors};
+  }
+  validateTopicName(topicName) {
+    if (!topicName || typeof topicName !== "string") {
+      return false;
+    }
+    const validPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!validPattern.test(topicName)) {
+      return false;
+    }
+    if (topicName.length > 249) {
+      return false;
+    }
+    return true;
+  }
+  createErrorContext(error, operation, record) {
+    return {
+      error_message: error instanceof Error ? error.message : String(error),
+      error_operation: operation,
+      error_timestamp: new Date().toISOString(),
+      error_stack: error instanceof Error ? error.stack : void 0,
+      record_id: (record == null ? void 0 : record.id) || (record == null ? void 0 : record._id) || (record == null ? void 0 : record.order_id) || "unknown",
+      record_type: (record == null ? void 0 : record.type) || typeof record
+    };
+  }
+  log(level, message, context) {
+    const logEntry = {
+      level,
+      message,
+      timestamp: new Date().toISOString(),
+      context
+    };
+    switch (level) {
+      case "error":
+        console.error(JSON.stringify(logEntry));
+        break;
+      case "warn":
+        console.warn(JSON.stringify(logEntry));
+        break;
+      default:
+        console.log(JSON.stringify(logEntry));
+    }
+  }
+  validateDataTypes(record) {
+    const issues = [];
+    if (!record || typeof record !== "object") {
+      issues.push("Record must be an object");
+      return {valid: false, issues};
+    }
+    Object.keys(record).forEach((key) => {
+      const value = record[key];
+      if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+        try {
+          JSON.stringify(value);
+        } catch (e) {
+          issues.push(`Field '${key}' contains non-serializable object`);
+        }
+      }
+      if (typeof value === "string" && value.length > 1e5) {
+        issues.push(`Field '${key}' contains extremely large string (${value.length} chars)`);
+      }
+      if (typeof value === "object" && value !== null) {
+        const seen = new Set();
+        try {
+          JSON.stringify(value, (k, v) => {
+            if (typeof v === "object" && v !== null) {
+              if (seen.has(v))
+                throw new Error("Circular reference");
+              seen.add(v);
+            }
+            return v;
+          });
+        } catch (e) {
+          issues.push(`Field '${key}' may contain circular references`);
+        }
+      }
+    });
+    return {valid: issues.length === 0, issues};
+  }
+  removeUndefinedValues(obj) {
+    if (obj === null || typeof obj !== "object") {
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.removeUndefinedValues(item)).filter((item) => item !== void 0);
+    }
+    const cleaned = {};
+    Object.keys(obj).forEach((key) => {
+      const value = obj[key];
+      if (value !== void 0) {
+        cleaned[key] = this.removeUndefinedValues(value);
+      }
+    });
+    return cleaned;
+  }
   validateRecord(record) {
-    return Boolean(record && typeof record === "object" && (record.id && typeof record.id === "string" || record._id && typeof record._id === "string" || record.order_id && typeof record.order_id === "string"));
+    if (!record || typeof record !== "object") {
+      return false;
+    }
+    const hasValidId = Boolean(record.id && (typeof record.id === "string" || typeof record.id === "number") || record._id && (typeof record._id === "string" || typeof record._id === "number") || record.order_id && (typeof record.order_id === "string" || typeof record.order_id === "number"));
+    const hasValidData = Object.keys(record).length > 0;
+    return hasValidId && hasValidData;
   }
   shouldKeepRecord(record) {
     if (!this.validateRecord(record)) {
       return false;
     }
     const idField = record.id || record._id || record.order_id;
-    if (idField && typeof idField === "string" && idField.includes("test")) {
-      return false;
+    if (idField) {
+      const idStr = String(idField).toLowerCase();
+      if (idStr.includes("test") || idStr.includes("mock") || idStr.includes("dummy")) {
+        return false;
+      }
     }
     return true;
   }
   getRoutingTopics(record, originalTopic) {
     const topics = [];
-    if (record.type === "high_priority") {
-      topics.push("high-priority-records");
+    const sanitizedOriginalTopic = this.sanitizeTopicName(originalTopic);
+    if ((record == null ? void 0 : record.type) === "high_priority") {
+      topics.push(this.sanitizeTopicName("high-priority-records"));
     } else {
-      topics.push("standard-records");
+      topics.push(this.sanitizeTopicName("standard-records"));
     }
     if (!this.validateRecord(record)) {
-      topics.push("error-records");
+      topics.push(this.sanitizeTopicName("error-records"));
     }
-    return topics.length > 1 ? topics : topics[0];
+    const validTopics = topics.filter((topic) => this.validateTopicName(topic));
+    return validTopics.length > 1 ? validTopics : validTopics[0] || sanitizedOriginalTopic;
   }
   enrichRecord(record) {
     return __async(this, null, function* () {
       try {
-        const enrichmentData = yield this.simulateApiCall(record.id);
-        return __assign(__assign({}, record), {
+        const validation = this.validateDataTypes(record);
+        if (!validation.valid) {
+          this.log("warn", "Data validation issues during enrichment", {issues: validation.issues});
+        }
+        const recordId = (record == null ? void 0 : record.id) || (record == null ? void 0 : record._id) || (record == null ? void 0 : record.order_id);
+        if (!recordId) {
+          throw new Error("No valid ID found for enrichment");
+        }
+        const enrichmentData = yield this.simulateApiCall(String(recordId));
+        const enrichedRecord = __assign(__assign({}, record), {
           enrichment: enrichmentData,
-          enriched_at: new Date().toISOString()
+          enriched_at: new Date().toISOString(),
+          enrichment_version: "1.0.0"
         });
+        return this.removeUndefinedValues(enrichedRecord);
       } catch (error) {
-        console.error("Enrichment failed:", error);
-        return record;
+        const errorContext = this.createErrorContext(error, "enrichRecord", record);
+        this.log("error", "Enrichment failed", errorContext);
+        return __assign(__assign(__assign({}, record), {
+          enrichment_error: true
+        }), errorContext);
       }
     });
   }
   flattenRecord(record) {
+    const validation = this.validateDataTypes(record);
+    if (!validation.valid) {
+      this.log("warn", "Data validation issues during flattening", {issues: validation.issues});
+    }
     const flattened = __assign({}, record);
     if (record.user) {
       flattened.user_id = record.user.id;
@@ -9367,20 +9521,31 @@ var CommonTransform = class {
       });
       delete flattened.metadata;
     }
-    return __assign(__assign({}, flattened), {
+    const result = __assign(__assign({}, flattened), {
       flattened_at: new Date().toISOString(),
-      original_structure_preserved: false
+      original_structure_preserved: false,
+      flatten_version: "1.0.0"
     });
+    return this.removeUndefinedValues(result);
   }
   simulateApiCall(id) {
     return __async(this, null, function* () {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("API call timeout after 5 seconds"));
+        }, 5e3);
         setTimeout(() => {
+          clearTimeout(timeout);
+          if (Math.random() < 0.1) {
+            reject(new Error("Simulated API failure"));
+            return;
+          }
           resolve({
             external_id: `ext_${id}`,
             score: Math.floor(Math.random() * 100),
             category: "premium",
-            enriched_timestamp: new Date().toISOString()
+            enriched_timestamp: new Date().toISOString(),
+            api_version: "1.2.3"
           });
         }, 100);
       });
@@ -9394,62 +9559,84 @@ var ValueTransform = class {
     this.commonTransform = new CommonTransform();
   }
   transform(valueObject, keyObject, topic, timestamp) {
-    if (!this.commonTransform.shouldKeepRecord(valueObject)) {
-      return null;
-    }
     try {
-      const transformedRecord = this.commonTransform.transformRecord(valueObject);
-      transformedRecord.source_topic = topic;
-      transformedRecord.source_timestamp = timestamp;
+      const validation = this.commonTransform.validateInput(valueObject, keyObject, topic, timestamp);
+      if (!validation.valid) {
+        this.commonTransform.log("error", "Input validation failed", {errors: validation.errors});
+        return null;
+      }
+      const sanitizedTopic = this.commonTransform.sanitizeTopicName(topic);
+      const normalizedTimestamp = this.commonTransform.normalizeTimestamp(timestamp);
+      if (!this.commonTransform.shouldKeepRecord(valueObject)) {
+        return null;
+      }
+      const transformedRecord = this.commonTransform.transformRecord(valueObject, normalizedTimestamp);
+      transformedRecord.source_topic = sanitizedTopic;
+      transformedRecord.source_timestamp = normalizedTimestamp;
       transformedRecord.source_key = keyObject;
       transformedRecord.transform_type = "value";
-      return transformedRecord;
+      return this.commonTransform.removeUndefinedValues(transformedRecord);
     } catch (error) {
-      console.error("Value transformation failed:", error);
-      return __assign(__assign({}, valueObject), {
-        transform_error: true,
-        error_message: error instanceof Error ? error.message : String(error),
-        error_timestamp: new Date().toISOString()
-      });
+      const errorContext = this.commonTransform.createErrorContext(error, "valueTransform", valueObject);
+      this.commonTransform.log("error", "Value transformation failed", errorContext);
+      return __assign(__assign(__assign({}, valueObject), {
+        transform_error: true
+      }), errorContext);
     }
   }
   transformAsync(valueObject, keyObject, topic, timestamp) {
     return __async(this, null, function* () {
-      if (!this.commonTransform.shouldKeepRecord(valueObject)) {
-        return null;
-      }
       try {
-        let transformedRecord = this.commonTransform.transformRecord(valueObject);
+        const validation = this.commonTransform.validateInput(valueObject, keyObject, topic, timestamp);
+        if (!validation.valid) {
+          this.commonTransform.log("error", "Async input validation failed", {errors: validation.errors});
+          return null;
+        }
+        const sanitizedTopic = this.commonTransform.sanitizeTopicName(topic);
+        const normalizedTimestamp = this.commonTransform.normalizeTimestamp(timestamp);
+        if (!this.commonTransform.shouldKeepRecord(valueObject)) {
+          return null;
+        }
+        let transformedRecord = this.commonTransform.transformRecord(valueObject, normalizedTimestamp);
         transformedRecord = yield this.commonTransform.enrichRecord(transformedRecord);
-        transformedRecord.source_topic = topic;
-        transformedRecord.source_timestamp = timestamp;
+        transformedRecord.source_topic = sanitizedTopic;
+        transformedRecord.source_timestamp = normalizedTimestamp;
         transformedRecord.source_key = keyObject;
         transformedRecord.transform_type = "async_value";
-        return transformedRecord;
+        return this.commonTransform.removeUndefinedValues(transformedRecord);
       } catch (error) {
-        console.error("Async value transformation failed:", error);
-        return __assign(__assign({}, valueObject), {
-          transform_error: true,
-          error_message: error instanceof Error ? error.message : String(error),
-          error_timestamp: new Date().toISOString()
-        });
+        const errorContext = this.commonTransform.createErrorContext(error, "asyncValueTransform", valueObject);
+        this.commonTransform.log("error", "Async value transformation failed", errorContext);
+        return __assign(__assign(__assign({}, valueObject), {
+          transform_error: true
+        }), errorContext);
       }
     });
   }
   transformFlatten(valueObject, keyObject, topic, timestamp) {
-    if (!this.commonTransform.validateRecord(valueObject)) {
-      return null;
-    }
     try {
+      const validation = this.commonTransform.validateInput(valueObject, keyObject, topic, timestamp);
+      if (!validation.valid) {
+        this.commonTransform.log("error", "Flatten input validation failed", {errors: validation.errors});
+        return null;
+      }
+      if (!this.commonTransform.validateRecord(valueObject)) {
+        return null;
+      }
+      const sanitizedTopic = this.commonTransform.sanitizeTopicName(topic);
+      const normalizedTimestamp = this.commonTransform.normalizeTimestamp(timestamp);
       const flattenedRecord = this.commonTransform.flattenRecord(valueObject);
-      flattenedRecord.source_topic = topic;
-      flattenedRecord.source_timestamp = timestamp;
+      flattenedRecord.source_topic = sanitizedTopic;
+      flattenedRecord.source_timestamp = normalizedTimestamp;
       flattenedRecord.source_key = keyObject;
       flattenedRecord.transform_type = "flatten";
-      return flattenedRecord;
+      return this.commonTransform.removeUndefinedValues(flattenedRecord);
     } catch (error) {
-      console.error("Flatten transformation failed:", error);
-      return valueObject;
+      const errorContext = this.commonTransform.createErrorContext(error, "flattenTransform", valueObject);
+      this.commonTransform.log("error", "Flatten transformation failed", errorContext);
+      return __assign(__assign(__assign({}, valueObject), {
+        transform_error: true
+      }), errorContext);
     }
   }
 };
@@ -9459,36 +9646,55 @@ var import_moment2 = __toModule(require_moment());
 var KeyTransform = class {
   transform(valueObject, keyObject, topic, timestamp) {
     try {
-      if (valueObject && valueObject.type) {
-        return `${valueObject.type}-${keyObject}`;
+      if (!valueObject || typeof valueObject !== "object") {
+        console.warn("Invalid valueObject for key transformation");
+        return this.sanitizeKey(`invalid-value-${keyObject}`);
       }
-      const datePrefix = (0, import_moment2.default)(timestamp).format("YYYY-MM-DD");
-      if (valueObject && valueObject.user_id) {
-        const userHash = this.simpleHash(valueObject.user_id) % 10;
-        return `${datePrefix}-partition-${userHash}-${keyObject}`;
+      if (!topic || typeof topic !== "string") {
+        console.warn("Invalid topic for key transformation");
+        return this.sanitizeKey(`invalid-topic-${keyObject}`);
+      }
+      const normalizedTimestamp = this.normalizeTimestamp(timestamp);
+      if (valueObject.type && typeof valueObject.type === "string") {
+        const result2 = `${valueObject.type}-${keyObject}`;
+        return this.sanitizeKey(result2);
+      }
+      const datePrefix = (0, import_moment2.default)(normalizedTimestamp).format("YYYY-MM-DD");
+      if (valueObject.user_id) {
+        const userHash = this.simpleHash(String(valueObject.user_id)) % 10;
+        const result2 = `${datePrefix}-partition-${userHash}-${keyObject}`;
+        return this.sanitizeKey(result2);
       }
       const topicPrefix = topic.replace(/[^a-zA-Z0-9]/g, "_");
-      return `${topicPrefix}-${datePrefix}-${keyObject}`;
+      const result = `${topicPrefix}-${datePrefix}-${keyObject}`;
+      return this.sanitizeKey(result);
     } catch (error) {
       console.error("Key transformation failed:", error);
-      return `error-${keyObject}`;
+      return this.sanitizeKey(`error-${keyObject}`);
     }
   }
   transformWithContext(valueObject, keyObject, topic, timestamp) {
     try {
-      if (valueObject && valueObject.tenant_id) {
+      if (!valueObject || typeof valueObject !== "object") {
+        return this.transform(valueObject, keyObject, topic, timestamp);
+      }
+      const normalizedTimestamp = this.normalizeTimestamp(timestamp);
+      if (valueObject.tenant_id && typeof valueObject.tenant_id === "string") {
         const tenantPrefix = `tenant-${valueObject.tenant_id}`;
-        const datePrefix = (0, import_moment2.default)(timestamp).format("YYYY-MM");
-        return `${tenantPrefix}-${datePrefix}-${keyObject}`;
+        const datePrefix = (0, import_moment2.default)(normalizedTimestamp).format("YYYY-MM");
+        const result = `${tenantPrefix}-${datePrefix}-${keyObject}`;
+        return this.sanitizeKey(result);
       }
-      if (valueObject && valueObject.priority) {
+      if (valueObject.priority && typeof valueObject.priority === "string") {
         const priorityPrefix = valueObject.priority === "high" ? "pri-high" : "pri-normal";
-        return `${priorityPrefix}-${keyObject}`;
+        const result = `${priorityPrefix}-${keyObject}`;
+        return this.sanitizeKey(result);
       }
-      if (valueObject && valueObject.region) {
-        return `${valueObject.region}-${keyObject}`;
+      if (valueObject.region && typeof valueObject.region === "string") {
+        const result = `${valueObject.region}-${keyObject}`;
+        return this.sanitizeKey(result);
       }
-      return this.transform(valueObject, keyObject, topic, timestamp);
+      return this.transform(valueObject, keyObject, topic, normalizedTimestamp);
     } catch (error) {
       console.error("Context key transformation failed:", error);
       return this.transform(valueObject, keyObject, topic, timestamp);
@@ -9496,27 +9702,45 @@ var KeyTransform = class {
   }
   transformForFanOut(valueObject, keyObject, topic, timestamp) {
     try {
-      if (valueObject && valueObject.id) {
-        return `fanout-${valueObject.id}`;
+      if (!valueObject || typeof valueObject !== "object") {
+        return this.sanitizeKey(`fanout-invalid-${keyObject}`);
       }
-      if (valueObject && valueObject.customer_id && valueObject.order_id) {
-        return `${valueObject.customer_id}-${valueObject.order_id}`;
+      if (valueObject.id) {
+        const result2 = `fanout-${valueObject.id}`;
+        return this.sanitizeKey(result2);
       }
-      const recordHash = this.simpleHash(JSON.stringify(valueObject));
-      return `fanout-${recordHash}-${keyObject}`;
+      if (valueObject.customer_id && valueObject.order_id) {
+        const result2 = `${valueObject.customer_id}-${valueObject.order_id}`;
+        return this.sanitizeKey(result2);
+      }
+      const recordHash = this.simpleHash(this.safeStringify(valueObject));
+      const result = `fanout-${recordHash}-${keyObject}`;
+      return this.sanitizeKey(result);
     } catch (error) {
       console.error("Fan-out key transformation failed:", error);
-      return `fanout-error-${keyObject}`;
+      return this.sanitizeKey(`fanout-error-${keyObject}`);
     }
   }
+  normalizeTimestamp(timestamp) {
+    if (typeof timestamp !== "number" || isNaN(timestamp)) {
+      return Date.now();
+    }
+    if (timestamp < 1e12) {
+      return timestamp * 1e3;
+    }
+    return timestamp;
+  }
   simpleHash(str) {
+    if (!str || typeof str !== "string") {
+      return 0;
+    }
     let hash = 0;
     if (str.length === 0)
       return hash;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = (hash << 5) - hash + char;
-      hash = hash & hash;
+      hash = hash | 0;
     }
     return Math.abs(hash);
   }
@@ -9528,21 +9752,46 @@ var KeyTransform = class {
       console.warn(`Key is quite long (${key.length} chars): ${key.substring(0, 50)}...`);
       return false;
     }
-    const problematicChars = /[<>:"/\\|?*\x00-\x1f]/;
+    const problematicChars = /[<>:"/\\|?*]/u;
     if (problematicChars.test(key)) {
       console.warn(`Key contains problematic characters: ${key}`);
       return false;
+    }
+    for (let i = 0; i < key.length; i++) {
+      const charCode = key.charCodeAt(i);
+      if (charCode >= 0 && charCode <= 31) {
+        console.warn(`Key contains control character: ${key}`);
+        return false;
+      }
     }
     return true;
   }
   sanitizeKey(key) {
     if (!key)
       return "empty-key";
-    let sanitized = key.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_");
+    let sanitized = key.replace(/[<>:"/\\|?*]/gu, "_");
+    sanitized = sanitized.replace(/[\x00-\x1f]/g, "_");
     if (sanitized.length > 255) {
       sanitized = sanitized.substring(0, 252) + "...";
     }
     return sanitized;
+  }
+  safeStringify(obj) {
+    try {
+      const seen = new Set();
+      return JSON.stringify(obj, (key, value) => {
+        if (typeof value === "object" && value !== null) {
+          if (seen.has(value)) {
+            return "[Circular]";
+          }
+          seen.add(value);
+        }
+        return value;
+      });
+    } catch (error) {
+      console.warn("Failed to stringify object:", error);
+      return "[Unstringifiable]";
+    }
   }
 };
 
@@ -9553,42 +9802,54 @@ var TopicTransform = class {
   }
   transform(valueObject, keyObject, topic, timestamp) {
     try {
+      const validation = this.commonTransform.validateInput(valueObject, keyObject, topic, timestamp);
+      if (!validation.valid) {
+        this.commonTransform.log("error", "Topic transform input validation failed", {errors: validation.errors});
+        return this.commonTransform.sanitizeTopicName("validation-errors");
+      }
+      const normalizedTimestamp = this.commonTransform.normalizeTimestamp(timestamp);
       const topics = [];
       const routingTopics = this.commonTransform.getRoutingTopics(valueObject, topic);
       const baseTopics = Array.isArray(routingTopics) ? routingTopics : [routingTopics];
       topics.push(...baseTopics);
-      if (valueObject && valueObject.type) {
+      if ((valueObject == null ? void 0 : valueObject.type) && typeof valueObject.type === "string") {
+        let routedTopic;
         switch (valueObject.type) {
           case "order":
-            topics.push("orders-processed");
+            routedTopic = "orders-processed";
             break;
           case "user":
-            topics.push("users-processed");
+            routedTopic = "users-processed";
             break;
           case "payment":
-            topics.push("payments-processed");
+            routedTopic = "payments-processed";
             break;
           default:
-            topics.push("general-processed");
+            routedTopic = "general-processed";
         }
+        topics.push(this.commonTransform.sanitizeTopicName(routedTopic));
       }
-      if (valueObject && valueObject.amount && valueObject.amount > 1e3) {
-        topics.push("high-value-records");
+      if ((valueObject == null ? void 0 : valueObject.amount) && typeof valueObject.amount === "number" && valueObject.amount > 1e3) {
+        topics.push(this.commonTransform.sanitizeTopicName("high-value-records"));
       }
       if (!this.commonTransform.validateRecord(valueObject)) {
-        topics.push("error-records");
+        topics.push(this.commonTransform.sanitizeTopicName("error-records"));
       }
-      const hour = new Date(timestamp).getHours();
+      const hour = new Date(normalizedTimestamp).getHours();
       if (hour >= 9 && hour <= 17) {
-        topics.push("business-hours-records");
+        topics.push(this.commonTransform.sanitizeTopicName("business-hours-records"));
       } else {
-        topics.push("after-hours-records");
+        topics.push(this.commonTransform.sanitizeTopicName("after-hours-records"));
       }
-      const uniqueTopics = Array.from(new Set(topics));
+      const uniqueTopics = Array.from(new Set(topics)).filter((t) => this.commonTransform.validateTopicName(t));
+      if (uniqueTopics.length === 0) {
+        return this.commonTransform.sanitizeTopicName("fallback-topic");
+      }
       return uniqueTopics.length > 1 ? uniqueTopics : uniqueTopics[0];
     } catch (error) {
-      console.error("Topic transformation failed:", error);
-      return "transform-errors";
+      const errorContext = this.commonTransform.createErrorContext(error, "topicTransform", valueObject);
+      this.commonTransform.log("error", "Topic transformation failed", errorContext);
+      return this.commonTransform.sanitizeTopicName("transform-errors");
     }
   }
   simpleRoute(valueObject, keyObject, topic, timestamp) {
@@ -10004,7 +10265,7 @@ var KeySchemaTransform = class {
       console.error("Output key cannot be null");
       return false;
     }
-    const serialized = JSON.stringify(keyObject);
+    const serialized = this.safeStringify(keyObject);
     if (serialized.length > 1024) {
       console.warn(`Key is large (${serialized.length} bytes), may affect performance`);
     }
@@ -10034,7 +10295,7 @@ var KeySchemaTransform = class {
         }
       });
       if (!standardKey.partition_hint) {
-        const keyStr = standardKey.id || standardKey.key || JSON.stringify(standardKey);
+        const keyStr = standardKey.id || standardKey.key || this.safeStringify(standardKey);
         standardKey.partition_hint = this.simpleHash(keyStr) % 32;
       }
       return standardKey;
@@ -10056,7 +10317,7 @@ var KeySchemaTransform = class {
         generated_at: new Date(timestamp).toISOString()
       };
     }
-    const uuid = this.generateUUID();
+    const uuid = this.generateUUIDBundled();
     return {
       key: uuid,
       type: "generated_uuid",
@@ -10130,16 +10391,38 @@ var KeySchemaTransform = class {
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = (hash << 5) - hash + char;
-      hash = hash & hash;
+      hash = hash | 0;
     }
     return Math.abs(hash);
   }
-  generateUUID() {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == "x" ? r : r & 3 | 8;
-      return v.toString(16);
-    });
+  generateUUIDBundled() {
+    try {
+      return v4_default();
+    } catch (error) {
+      console.warn("Web Crypto not available, falling back to simple UUID generation");
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c == "x" ? r : r & 3 | 8;
+        return v.toString(16);
+      });
+    }
+  }
+  safeStringify(obj) {
+    try {
+      const seen = new Set();
+      return JSON.stringify(obj, (key, value) => {
+        if (typeof value === "object" && value !== null) {
+          if (seen.has(value)) {
+            return "[Circular]";
+          }
+          seen.add(value);
+        }
+        return value;
+      });
+    } catch (error) {
+      console.warn("Failed to stringify object:", error);
+      return "[Unstringifiable]";
+    }
   }
 };
 

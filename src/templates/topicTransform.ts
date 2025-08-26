@@ -28,6 +28,16 @@ export class TopicTransform {
      */
     public transform(valueObject: any, keyObject: any, topic: string, timestamp: number): string | string[] {
         try {
+            // Enhanced input validation
+            const validation = this.commonTransform.validateInput(valueObject, keyObject, topic, timestamp);
+            if (!validation.valid) {
+                this.commonTransform.log('error', 'Topic transform input validation failed', { errors: validation.errors });
+                return this.commonTransform.sanitizeTopicName('validation-errors');
+            }
+            
+            // Normalize timestamp
+            const normalizedTimestamp = this.commonTransform.normalizeTimestamp(timestamp);
+            
             const topics: string[] = [];
             
             // Use common transform to determine routing
@@ -40,49 +50,58 @@ export class TopicTransform {
             // Add additional routing logic here
             
             // Example: Route based on record type
-            if (valueObject && valueObject.type) {
+            if (valueObject?.type && typeof valueObject.type === 'string') {
+                let routedTopic: string;
                 switch (valueObject.type) {
                     case 'order':
-                        topics.push('orders-processed');
+                        routedTopic = 'orders-processed';
                         break;
                     case 'user':
-                        topics.push('users-processed');
+                        routedTopic = 'users-processed';
                         break;
                     case 'payment':
-                        topics.push('payments-processed');
+                        routedTopic = 'payments-processed';
                         break;
                     default:
-                        topics.push('general-processed');
+                        routedTopic = 'general-processed';
                 }
+                topics.push(this.commonTransform.sanitizeTopicName(routedTopic));
             }
             
             // Example: Route high-value records to special topic
-            if (valueObject && valueObject.amount && valueObject.amount > 1000) {
-                topics.push('high-value-records');
+            if (valueObject?.amount && typeof valueObject.amount === 'number' && valueObject.amount > 1000) {
+                topics.push(this.commonTransform.sanitizeTopicName('high-value-records'));
             }
             
             // Example: Route errors to error topic
             if (!this.commonTransform.validateRecord(valueObject)) {
-                topics.push('error-records');
+                topics.push(this.commonTransform.sanitizeTopicName('error-records'));
             }
             
             // Example: Time-based routing
-            const hour = new Date(timestamp).getHours();
+            const hour = new Date(normalizedTimestamp).getHours();
             if (hour >= 9 && hour <= 17) {
-                topics.push('business-hours-records');
+                topics.push(this.commonTransform.sanitizeTopicName('business-hours-records'));
             } else {
-                topics.push('after-hours-records');
+                topics.push(this.commonTransform.sanitizeTopicName('after-hours-records'));
             }
             
-            // Remove duplicates and return
-            const uniqueTopics = Array.from(new Set(topics));
+            // Remove duplicates and validate all topic names
+            const uniqueTopics = Array.from(new Set(topics))
+                .filter(t => this.commonTransform.validateTopicName(t));
+            
+            if (uniqueTopics.length === 0) {
+                return this.commonTransform.sanitizeTopicName('fallback-topic');
+            }
+            
             return uniqueTopics.length > 1 ? uniqueTopics : uniqueTopics[0];
             
         } catch (error) {
-            console.error('Topic transformation failed:', error);
+            const errorContext = this.commonTransform.createErrorContext(error, 'topicTransform', valueObject);
+            this.commonTransform.log('error', 'Topic transformation failed', errorContext);
             
-            // Fallback to error topic
-            return 'transform-errors';
+            // Fallback to sanitized error topic
+            return this.commonTransform.sanitizeTopicName('transform-errors');
         }
     }
     

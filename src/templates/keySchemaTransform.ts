@@ -1,5 +1,7 @@
-// keySchemaTransform.ts - Key schema transformation logic
+// keySchemaTransform.ts - Key schema transformation logic  
 // This handles transformation and validation of record key schemas
+
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Key Schema Transform Class
@@ -207,7 +209,7 @@ export class KeySchemaTransform {
         }
         
         // Check serialization size (keys should be reasonably small)
-        const serialized = JSON.stringify(keyObject);
+        const serialized = this.safeStringify(keyObject);
         if (serialized.length > 1024) { // 1KB limit
             console.warn(`Key is large (${serialized.length} bytes), may affect performance`);
         }
@@ -250,7 +252,7 @@ export class KeySchemaTransform {
             
             // Add partition hint if not present
             if (!standardKey.partition_hint) {
-                const keyStr = standardKey.id || standardKey.key || JSON.stringify(standardKey);
+                const keyStr = standardKey.id || standardKey.key || this.safeStringify(standardKey);
                 standardKey.partition_hint = this.simpleHash(keyStr) % 32;
             }
             
@@ -283,7 +285,7 @@ export class KeySchemaTransform {
         }
         
         // Generate UUID-based key as last resort
-        const uuid = this.generateUUID();
+        const uuid = this.generateUUIDBundled();
         return {
             key: uuid,
             type: 'generated_uuid',
@@ -397,20 +399,47 @@ export class KeySchemaTransform {
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
+            hash = hash | 0; // Convert to 32-bit signed integer
         }
         
         return Math.abs(hash);
     }
     
     /**
-     * Generate simple UUID
+     * Generate UUID with fallback for environments without Web Crypto
      */
-    private generateUUID(): string {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
+    private generateUUIDBundled(): string {
+        try {
+            return uuidv4();
+        } catch (error) {
+            console.warn('Web Crypto not available, falling back to simple UUID generation');
+            // Fallback implementation
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+    }
+    
+    /**
+     * Safe JSON stringify that handles circular references
+     */
+    private safeStringify(obj: any): string {
+        try {
+            const seen = new Set();
+            return JSON.stringify(obj, (key, value) => {
+                if (typeof value === 'object' && value !== null) {
+                    if (seen.has(value)) {
+                        return '[Circular]';
+                    }
+                    seen.add(value);
+                }
+                return value;
+            });
+        } catch (error) {
+            console.warn('Failed to stringify object:', error);
+            return '[Unstringifiable]';
+        }
     }
 }
