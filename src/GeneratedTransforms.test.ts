@@ -61,7 +61,7 @@ try {
     // Read the transform bundle
     const transformCode = fs.readFileSync(${JSON.stringify(filePath)}, 'utf8');
     
-    // Create a VM context with necessary globals
+    // Create a VM context with necessary globals and better module support
     const context = {
         console: console,
         require: require,
@@ -73,18 +73,43 @@ try {
         clearInterval: clearInterval,
         crypto: require('crypto'),
         global: {},
+        globalThis: {},
         exports: {},
-        module: { exports: {} }
+        module: { exports: {} },
+        __filename: ${JSON.stringify(filePath)},
+        __dirname: require('path').dirname(${JSON.stringify(filePath)})
     };
     
-    // Execute the transform code in the VM context
-    const script = new vm.Script(transformCode);
-    script.runInNewContext(context);
+    // Execute the transform code in the VM context with filename and timeout
+    const script = new vm.Script(transformCode, { 
+        filename: ${JSON.stringify(filePath)},
+        timeout: 5000 // 5 second timeout for runaway protection
+    });
+    script.runInNewContext(context, { timeout: 5000 });
     
-    // Get the transform function from context
-    const transformFn = context[${JSON.stringify(functionName)}];
+    // Get the transform function from context - support multiple export patterns
+    let transformFn = context[${JSON.stringify(functionName)}];
+    
+    // Try different export patterns if function not found directly
     if (typeof transformFn !== 'function') {
-        throw new Error('Transform function ' + ${JSON.stringify(functionName)} + ' not found or not a function');
+        // Try global/globalThis exports
+        transformFn = context.global[${JSON.stringify(functionName)}] || 
+                      context.globalThis[${JSON.stringify(functionName)}];
+        
+        // Try module.exports
+        if (typeof transformFn !== 'function' && context.module && context.module.exports) {
+            transformFn = context.module.exports[${JSON.stringify(functionName)}] || 
+                          context.module.exports;
+        }
+        
+        // Try exports
+        if (typeof transformFn !== 'function' && context.exports) {
+            transformFn = context.exports[${JSON.stringify(functionName)}];
+        }
+    }
+    
+    if (typeof transformFn !== 'function') {
+        throw new Error('Transform function ' + ${JSON.stringify(functionName)} + ' not found or not a function. Available keys: ' + Object.keys(context).join(', '));
     }
     
     // Execute the transform
@@ -208,8 +233,8 @@ describe('Generated Transform Functions', () => {
                 // Template structure is more flexible - processes records but may mark validation issues
                 expect(result).toBeDefined();
                 expect(typeof result).toBe('object');
-                // Template structure adds metadata and processes records more permissively
-                expect(result.has_valid_data).toBe(false);
+                // Record has _id so has_valid_data should be true, even with null customer
+                expect(result.has_valid_data).toBe(true);
             }
         });
         

@@ -45,20 +45,30 @@ export class KeyTransform {
                 return this.sanitizeKey(result);
             }
             
-            // Strategy 2: Date-based partitioning
-            const datePrefix = moment(normalizedTimestamp).format('YYYY-MM-DD');
+            // Strategy 2: Date-based partitioning (always use UTC)
+            const datePrefix = moment.utc(normalizedTimestamp).format('YYYY-MM-DD');
             
             // Strategy 3: Hash-based routing (for load distribution)
             if (valueObject.user_id) {
                 const userHash = this.simpleHash(String(valueObject.user_id)) % 10;
                 const result = `${datePrefix}-partition-${userHash}-${keyObject}`;
-                return this.sanitizeKey(result);
+                const sanitizedResult = this.sanitizeKey(result);
+                if (!this.validateKey(sanitizedResult)) {
+                    console.warn('Generated key failed validation:', sanitizedResult);
+                    return this.sanitizeKey(`fallback-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`);
+                }
+                return sanitizedResult;
             }
             
             // Strategy 4: Topic-specific prefixing
             const topicPrefix = topic.replace(/[^a-zA-Z0-9]/g, '_');
             const result = `${topicPrefix}-${datePrefix}-${keyObject}`;
-            return this.sanitizeKey(result);
+            const sanitizedResult = this.sanitizeKey(result);
+            if (!this.validateKey(sanitizedResult)) {
+                console.warn('Generated key failed validation:', sanitizedResult);
+                return this.sanitizeKey(`fallback-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`);
+            }
+            return sanitizedResult;
             
         } catch (error) {
             console.error('Key transformation failed:', error);
@@ -82,22 +92,22 @@ export class KeyTransform {
             // Normalize timestamp
             const normalizedTimestamp = this.normalizeTimestamp(timestamp);
             
-            // Example: Multi-tenant key strategy
+            // Multi-tenant key strategy
             if (valueObject.tenant_id && typeof valueObject.tenant_id === 'string') {
                 const tenantPrefix = `tenant-${valueObject.tenant_id}`;
-                const datePrefix = moment(normalizedTimestamp).format('YYYY-MM');
+                const datePrefix = moment.utc(normalizedTimestamp).format('YYYY-MM');
                 const result = `${tenantPrefix}-${datePrefix}-${keyObject}`;
                 return this.sanitizeKey(result);
             }
             
-            // Example: Priority-based routing
+            // Priority-based routing
             if (valueObject.priority && typeof valueObject.priority === 'string') {
                 const priorityPrefix = valueObject.priority === 'high' ? 'pri-high' : 'pri-normal';
                 const result = `${priorityPrefix}-${keyObject}`;
                 return this.sanitizeKey(result);
             }
             
-            // Example: Geographic routing
+            // Geographic routing
             if (valueObject.region && typeof valueObject.region === 'string') {
                 const result = `${valueObject.region}-${keyObject}`;
                 return this.sanitizeKey(result);
@@ -158,7 +168,7 @@ export class KeyTransform {
         }
         
         if (timestamp < 1000000000000) { // Less than year 2001 in milliseconds
-            return timestamp * 1000; // Convert from seconds to milliseconds
+            return timestamp * 1000;
         }
         return timestamp;
     }
@@ -178,7 +188,7 @@ export class KeyTransform {
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash | 0; // Convert to 32-bit signed integer
+            hash = hash | 0;
         }
         
         return Math.abs(hash);
@@ -193,26 +203,23 @@ export class KeyTransform {
             return false;
         }
         
-        // Check length (Kafka recommends keys under 1KB, but shorter is better)
+        // Kafka recommends keys under 1KB
         if (key.length > 255) {
             console.warn(`Key is quite long (${key.length} chars): ${key.substring(0, 50)}...`);
             return false;
         }
         
-        // Check for problematic characters that might cause issues
-        const problematicChars = /[<>:"/\\|?*]/u;
+        // Check for problematic characters
+        const problematicChars = /[\u003C\u003E\u003A\u0022\u002F\u005C\u007C\u003F\u002A]/u;
         if (problematicChars.test(key)) {
             console.warn(`Key contains problematic characters: ${key}`);
             return false;
         }
         
-        // Check for control characters separately
-        for (let i = 0; i < key.length; i++) {
-            const charCode = key.charCodeAt(i);
-            if (charCode >= 0 && charCode <= 31) {
-                console.warn(`Key contains control character: ${key}`);
-                return false;
-            }
+        const controlChars = /[\u0000-\u001F]/u;
+        if (controlChars.test(key)) {
+            console.warn(`Key contains control character: ${key}`);
+            return false;
         }
         
         return true;
@@ -224,11 +231,9 @@ export class KeyTransform {
     public sanitizeKey(key: string): string {
         if (!key) return 'empty-key';
         
-        // Replace problematic characters
-        let sanitized = key.replace(/[<>:"/\\|?*]/gu, '_');
+        let sanitized = key.replace(/[\u003C\u003E\u003A\u0022\u002F\u005C\u007C\u003F\u002A]/gu, '_');
         
-        // Replace control characters
-        sanitized = sanitized.replace(/[\x00-\x1f]/g, '_');
+        sanitized = sanitized.replace(/[\u0000-\u001F]/g, '_');
         
         // Truncate if too long
         if (sanitized.length > 255) {

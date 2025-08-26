@@ -41,7 +41,6 @@ describe("OrderTransformer", () => {
             expect(result.customer).toBe(mockCustomer);
             expect(result.organization_id).toBe("org-456");
             
-            // Check that timestamps were added
             expect(result.processed_at).toBeDefined();
             expect(result.processed_time).toBeDefined();
             
@@ -49,17 +48,14 @@ describe("OrderTransformer", () => {
             expect(moment(result.processed_at).isValid()).toBe(true);
             expect(result.processed_time).toMatch(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
             
-            // Check new npm dependency functionality
             expect(result.processing_id).toBeDefined();
             expect(typeof result.processing_id).toBe('string');
             expect(result.processing_id.length).toBe(36); // UUID v4 format length
             expect(result.processing_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/); // UUID v4 format
             
-            // Check lodash validation functionality
             expect(result.has_valid_customer).toBe(true); // Customer is valid
             expect(typeof result.has_valid_customer).toBe('boolean');
             
-            // Check lodash utility functionality
             expect(result.field_count).toBeGreaterThan(0);
             expect(typeof result.field_count).toBe('number');
             expect(result.field_count).toBe(7); // Number of fields in input order (after cleaning undefined)
@@ -91,7 +87,6 @@ describe("OrderTransformer", () => {
             expect(result.customer.organization_id).toBe("org-789");
             expect(result.organization_id).toBe("org-789"); // Gets it from customer for OrderType2
             
-            // Check that timestamps were added
             expect(result.processed_at).toBeDefined();
             expect(result.processed_time).toBeDefined();
             
@@ -99,17 +94,14 @@ describe("OrderTransformer", () => {
             expect(moment(result.processed_at).isValid()).toBe(true);
             expect(result.processed_time).toMatch(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
             
-            // Check new npm dependency functionality
             expect(result.processing_id).toBeDefined();
             expect(typeof result.processing_id).toBe('string');
             expect(result.processing_id.length).toBe(36); // UUID v4 format length
             expect(result.processing_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/); // UUID v4 format
             
-            // Check lodash validation functionality
             expect(result.has_valid_customer).toBe(true); // Customer is valid
             expect(typeof result.has_valid_customer).toBe('boolean');
             
-            // Check lodash utility functionality
             expect(result.field_count).toBeGreaterThan(0);
             expect(typeof result.field_count).toBe('number');
             expect(result.field_count).toBe(6); // Number of fields in input order (after cleaning undefined)

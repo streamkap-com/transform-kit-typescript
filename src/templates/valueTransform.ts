@@ -49,12 +49,10 @@ export class ValueTransform {
             // Apply your main business transformation
             const transformedRecord = this.commonTransform.transformRecord(valueObject, normalizedTimestamp);
             
-            // Add context from Streamkap parameters
             transformedRecord.source_topic = sanitizedTopic;
             transformedRecord.source_timestamp = normalizedTimestamp;
             transformedRecord.source_key = keyObject;
             
-            // Add any value-specific transformations here
             transformedRecord.transform_type = 'value';
             
             // Memory optimization
@@ -102,7 +100,6 @@ export class ValueTransform {
             // Apply async enrichment with timeout handling
             transformedRecord = await this.commonTransform.enrichRecord(transformedRecord);
             
-            // Add context from Streamkap parameters
             transformedRecord.source_topic = sanitizedTopic;
             transformedRecord.source_timestamp = normalizedTimestamp;
             transformedRecord.source_key = keyObject;
@@ -148,7 +145,6 @@ export class ValueTransform {
             // Apply flattening transformation
             const flattenedRecord = this.commonTransform.flattenRecord(valueObject);
             
-            // Add context
             flattenedRecord.source_topic = sanitizedTopic;
             flattenedRecord.source_timestamp = normalizedTimestamp;
             flattenedRecord.source_key = keyObject;

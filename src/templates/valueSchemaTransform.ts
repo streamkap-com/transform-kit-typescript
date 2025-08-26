@@ -29,7 +29,6 @@ export class ValueSchemaTransform {
             // Transform to output schema
             const transformedValue = this.transformToOutputSchema(valueObject);
             
-            // Add schema metadata
             transformedValue._schema = {
                 version: '1.0.0',
                 transformed_at: new Date().toISOString(),
@@ -63,7 +62,6 @@ export class ValueSchemaTransform {
      */
     public transformLegacyToNew(valueObject: any, keyObject: any, topic: string, timestamp: number): any {
         try {
-            // Example: Legacy to new schema transformation
             const newSchema: any = {};
             
             // Map legacy fields to new fields
@@ -84,7 +82,6 @@ export class ValueSchemaTransform {
                 };
             }
             
-            // Add migration metadata
             newSchema._migration = {
                 from_schema: 'legacy_v1',
                 to_schema: 'new_v2',
@@ -181,7 +178,6 @@ export class ValueSchemaTransform {
             return false;
         }
         
-        // Add your input schema validation rules here
         // Example validations:
         
         // Required fields check
@@ -193,9 +189,9 @@ export class ValueSchemaTransform {
             }
         }
         
-        // Type validations
-        if (valueObject.id && typeof valueObject.id !== 'string') {
-            console.error('Field "id" must be a string');
+        // Type validations - align with CommonTransform by accepting string or number
+        if (valueObject.id && typeof valueObject.id !== 'string' && typeof valueObject.id !== 'number') {
+            console.error('Field "id" must be a string or number');
             return false;
         }
         
@@ -215,7 +211,6 @@ export class ValueSchemaTransform {
             return false;
         }
         
-        // Add your output schema validation rules here
         // Example validations:
         
         // Ensure schema metadata exists
@@ -225,7 +220,6 @@ export class ValueSchemaTransform {
         }
         
         // Validate required output fields
-        // Add your specific validation logic here
         
         return true;
     }
@@ -240,7 +234,6 @@ export class ValueSchemaTransform {
         // Apply data type transformations
         output = this.transformDataTypes(output);
         
-        // Add standard fields
         output.processed_timestamp = new Date().toISOString();
         
         // Apply business-specific transformations
@@ -255,17 +248,14 @@ export class ValueSchemaTransform {
     private applyBusinessTransformations(valueObject: any): any {
         const transformed = { ...valueObject };
         
-        // Example: Calculate derived fields
         if (transformed.price && transformed.quantity) {
             transformed.total_amount = transformed.price * transformed.quantity;
         }
         
-        // Example: Standardize status values
         if (transformed.status) {
             transformed.status = transformed.status.toLowerCase();
         }
         
-        // Example: Add calculated fields
         if (transformed.created_at) {
             const createdDate = new Date(transformed.created_at);
             const now = new Date();

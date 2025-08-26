@@ -30,9 +30,9 @@ git clone https://github.com/streamkap-com/transform-kit-typescript.git && cd tr
 npm install && npm run build && npm test
 ```
 
-**For Existing Project**: [See integration guide below](#-option-2-existing-typescript-project)
+**For Existing Project**: [See integration guide below](#option-2-existing-typescript-project)
 
-📋 **Common Info**: [Deployment](#-deploy-to-streamkap) | [File Selection](#-which-file-to-use) | [Troubleshooting](#-troubleshooting)
+📋 **Common Info**: [Deployment](#deploy-to-streamkap) | [File Selection](#which-file-to-use) | [Troubleshooting](#troubleshooting)
 
 ## 🎯 Choose Your Path
 
@@ -125,7 +125,7 @@ npm test
 
 **Pro Tip**: The generated files are completely self-contained with all npm dependencies bundled in.
 
-📋 **Next Steps**: See [Common Reference](#-common-reference) below for deployment instructions and file selection guide.
+📋 **Next Steps**: See [Common Reference](#common-reference) below for deployment instructions and file selection guide.
 
 
 ---
@@ -189,7 +189,7 @@ ls transforms/  # Copy these .js files to Streamkap
 
 **That's it!** Your transforms are generated in `transforms/` folder. 
 
-📋 **Next Steps**: See [Deploy to Streamkap](#-deploy-to-streamkap) and [Which File to Use](#-which-file-to-use) below.
+📋 **Next Steps**: See [Deploy to Streamkap](#deploy-to-streamkap) and [Which File to Use](#which-file-to-use) below.
 
 ---
 

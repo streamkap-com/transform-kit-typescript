@@ -47,9 +47,7 @@ export class TopicTransform {
             const baseTopics = Array.isArray(routingTopics) ? routingTopics : [routingTopics];
             topics.push(...baseTopics);
             
-            // Add additional routing logic here
             
-            // Example: Route based on record type
             if (valueObject?.type && typeof valueObject.type === 'string') {
                 let routedTopic: string;
                 switch (valueObject.type) {
@@ -68,17 +66,14 @@ export class TopicTransform {
                 topics.push(this.commonTransform.sanitizeTopicName(routedTopic));
             }
             
-            // Example: Route high-value records to special topic
             if (valueObject?.amount && typeof valueObject.amount === 'number' && valueObject.amount > 1000) {
                 topics.push(this.commonTransform.sanitizeTopicName('high-value-records'));
             }
             
-            // Example: Route errors to error topic
             if (!this.commonTransform.validateRecord(valueObject)) {
                 topics.push(this.commonTransform.sanitizeTopicName('error-records'));
             }
             
-            // Example: Time-based routing
             const hour = new Date(normalizedTimestamp).getHours();
             if (hour >= 9 && hour <= 17) {
                 topics.push(this.commonTransform.sanitizeTopicName('business-hours-records'));
@@ -86,7 +81,6 @@ export class TopicTransform {
                 topics.push(this.commonTransform.sanitizeTopicName('after-hours-records'));
             }
             
-            // Remove duplicates and validate all topic names
             const uniqueTopics = Array.from(new Set(topics))
                 .filter(t => this.commonTransform.validateTopicName(t));
             
@@ -111,7 +105,6 @@ export class TopicTransform {
      */
     public simpleRoute(valueObject: any, keyObject: any, topic: string, timestamp: number): string {
         try {
-            // Example: Route based on customer tier
             if (valueObject && valueObject.customer_tier) {
                 switch (valueObject.customer_tier) {
                     case 'premium':
@@ -125,12 +118,10 @@ export class TopicTransform {
                 }
             }
             
-            // Example: Route based on geographic region
             if (valueObject && valueObject.region) {
                 return `${valueObject.region}-records`;
             }
             
-            // Example: Route based on source topic pattern
             if (topic.includes('orders')) {
                 return 'all-orders-processed';
             } else if (topic.includes('users')) {
@@ -186,7 +177,6 @@ export class TopicTransform {
                 topics.push('active-records');
             }
             
-            // Remove duplicates
             const uniqueTopics = Array.from(new Set(topics));
             return uniqueTopics.length > 1 ? uniqueTopics : uniqueTopics[0];
             
@@ -273,14 +263,12 @@ export class TopicTransform {
             return false;
         }
         
-        // Check for valid Kafka topic naming
         const validPattern = /^[a-zA-Z0-9._-]+$/;
         if (!validPattern.test(topicName)) {
             console.warn(`Invalid topic name: ${topicName}`);
             return false;
         }
         
-        // Check length (Kafka limit is 249 characters)
         if (topicName.length > 249) {
             console.warn(`Topic name too long: ${topicName}`);
             return false;
@@ -295,7 +283,6 @@ export class TopicTransform {
     public sanitizeTopicName(topicName: string): string {
         if (!topicName) return 'default-topic';
         
-        // Replace invalid characters
         let sanitized = topicName.replace(/[^a-zA-Z0-9._-]/g, '-');
         
         // Ensure it doesn't start with a dot

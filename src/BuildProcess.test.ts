@@ -202,7 +202,7 @@ describe('Build Process and Generated Files', () => {
                 
                 // Should not require external modules (except bundled dependencies)
                 const requireMatches = content.match(/require\(['"]([^'"]+)['"]\)/g) || [];
-                const allowedRequires = ['moment', 'lodash', 'uuid', 'util']; // bundled dependencies + Node.js built-ins
+                const allowedRequires = ['moment', 'lodash', 'uuid', 'util', 'crypto']; // bundled dependencies + Node.js built-ins
                 
                 for (const match of requireMatches) {
                     const moduleName = match.match(/require\(['"]([^'"]+)['"]\)/)?.[1];

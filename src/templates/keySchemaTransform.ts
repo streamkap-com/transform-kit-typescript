@@ -66,16 +66,12 @@ export class KeySchemaTransform {
                 // Original key value
                 key: keyObject,
                 
-                // Add partitioning information
                 partition_info: this.calculatePartitionInfo(keyObject, valueObject),
                 
-                // Add temporal information
                 time_bucket: this.getTimeBucket(timestamp),
                 
-                // Add business context
                 business_context: this.extractBusinessContext(valueObject),
                 
-                // Add topic context
                 source_topic: topic,
                 
                 // Schema version
@@ -116,10 +112,9 @@ export class KeySchemaTransform {
                 optimizedKey.type = keyObject.type;
             }
             
-            // Add compact timestamp for time-based partitioning
-            optimizedKey.ts = Math.floor(timestamp / 1000); // Unix timestamp
+            const safeTimestamp = timestamp || Date.now();
+            optimizedKey.ts = Math.floor(safeTimestamp / 1000); // Unix timestamp
             
-            // Add hash for distribution if needed
             if (keyObject.key) {
                 optimizedKey.hash = this.simpleHash(keyObject.key) % 100;
             }
@@ -183,7 +178,6 @@ export class KeySchemaTransform {
         
         // Validate structured keys
         if (typeof keyObject === 'object') {
-            // Check for essential fields
             if (!keyObject.id && !keyObject.key) {
                 console.error('Structured key must have either "id" or "key" field');
                 return false;
@@ -208,7 +202,6 @@ export class KeySchemaTransform {
             return false;
         }
         
-        // Check serialization size (keys should be reasonably small)
         const serialized = this.safeStringify(keyObject);
         if (serialized.length > 1024) { // 1KB limit
             console.warn(`Key is large (${serialized.length} bytes), may affect performance`);
@@ -250,7 +243,6 @@ export class KeySchemaTransform {
                 }
             };
             
-            // Add partition hint if not present
             if (!standardKey.partition_hint) {
                 const keyStr = standardKey.id || standardKey.key || this.safeStringify(standardKey);
                 standardKey.partition_hint = this.simpleHash(keyStr) % 32;
@@ -353,7 +345,7 @@ export class KeySchemaTransform {
      */
     private getTimeBucket(timestamp: number): string {
         const date = new Date(timestamp);
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
     }
     
     /**
@@ -361,7 +353,7 @@ export class KeySchemaTransform {
      */
     private getTimePartition(timestamp: number): string {
         const date = new Date(timestamp);
-        return `${date.getHours()}`;
+        return `${date.getUTCHours()}`;
     }
     
     /**
@@ -399,26 +391,36 @@ export class KeySchemaTransform {
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash | 0; // Convert to 32-bit signed integer
+            hash = hash | 0;
         }
         
         return Math.abs(hash);
     }
     
     /**
-     * Generate UUID with fallback for environments without Web Crypto
+     * Generate UUID with crypto-backed sources
      */
     private generateUUIDBundled(): string {
         try {
             return uuidv4();
         } catch (error) {
-            console.warn('Web Crypto not available, falling back to simple UUID generation');
-            // Fallback implementation
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0;
-                const v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
+            // Try to use Node.js crypto if available
+            try {
+                const crypto = require('crypto');
+                if (crypto && crypto.randomBytes) {
+                    const bytes = crypto.randomBytes(16);
+                    bytes[6] = (bytes[6] & 0x0f) | 0x40; // Version 4
+                    bytes[8] = (bytes[8] & 0x3f) | 0x80; // Variant 10
+                    
+                    const hex = Array.from(bytes, (byte: number) => byte.toString(16).padStart(2, '0')).join('');
+                    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+                }
+            } catch (cryptoError) {
+                // Node.js crypto not available
+            }
+            
+            // Fail fast instead of using Math.random()
+            throw new Error('UUID generation failed: No cryptographic source available. Please ensure uuid library is properly installed or provide a custom key generation method.');
         }
     }
     

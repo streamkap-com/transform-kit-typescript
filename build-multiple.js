@@ -58,24 +58,17 @@ async function buildTransforms() {
     }
     fs.mkdirSync(outputDir);
 
-    // First build the main bundle
+    // First build the main bundle using globalName to avoid IIFE wrapper issues
     console.log('📦 Building main TypeScript bundle...');
     try {
-        execSync(`npx esbuild ${entryPoint} --bundle --platform=browser --target=es2015 --outfile=main.js`, { stdio: 'inherit' });
+        execSync(`npx esbuild ${entryPoint} --bundle --platform=browser --target=es2015 --outfile=main.js --global-name=StreamkapTransforms --format=iife`, { stdio: 'inherit' });
     } catch (error) {
         console.error('❌ Failed to build main bundle');
         process.exit(1);
     }
 
-    // Read main.js and process it
+    // Read main.js without brittle post-processing
     let mainCode = fs.readFileSync('main.js', 'utf8');
-    
-    // Remove IIFE wrapper and clean up
-    mainCode = mainCode.replace(/^"use strict";\s*\n?/, '');
-    mainCode = mainCode.replace(/^\(\(\)\s*=>\s*\{\s*\n/, '');
-    mainCode = mainCode.replace(/\s*\}\)\(\);?\s*$/, '');
-    mainCode = mainCode.split('\n').map(line => line.replace(/^  /, '')).join('\n');
-    mainCode = mainCode.trim();
 
     // Group transforms by folder
     const folderGroups = {};
@@ -86,7 +79,6 @@ async function buildTransforms() {
         folderGroups[transform.folder].push(transform);
     });
 
-    // Generate each transform
     for (const transform of transforms) {
         const folderPath = path.join(outputDir, transform.folder);
         if (!fs.existsSync(folderPath)) {
@@ -97,9 +89,7 @@ async function buildTransforms() {
         console.log(`   📁 ${transform.folder}/`);
 
         if (transform.language === 'JAVASCRIPT') {
-            // Generate JavaScript transform files
             if (transform.functions.length > 0) {
-                // Generate individual function files
                 for (const funcType of transform.functions) {
                     const fileName = `${funcType}.js`;
                     console.log(`   📄 Generating ${fileName}`);
@@ -114,7 +104,6 @@ async function buildTransforms() {
                     validateFile(outputPath);
                 }
                 
-                // Generate combined transform file
                 const combinedFileName = `${transform.name}.js`;
                 console.log(`   📄 Generating ${combinedFileName} (combined)`);
                 
@@ -132,7 +121,6 @@ async function buildTransforms() {
             }
                 
         } else if (transform.language === 'SQL') {
-            // Generate SQL transform files
             const fileName = `${transform.name}.sql`;
             console.log(`   📄 Generating ${fileName}`);
             
@@ -225,7 +213,9 @@ function generateValueTransform(transform, useTemplateStructure = false) {
 function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     // Map/Filter: Transform and optionally filter records using template structure
     try {
-        var transformer = valueTransform;
+        var ValueTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.ValueTransform) || 
+                                  (typeof valueTransform !== 'undefined' ? valueTransform : ValueTransform);
+        var transformer = typeof ValueTransformClass === 'function' ? new ValueTransformClass() : ValueTransformClass;
         var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
         return transformedRecord;
     } catch (error) {
@@ -239,7 +229,9 @@ function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
 function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     // Fan Out: Transform the record that will be sent to multiple topics
     try {
-        var transformer = valueTransform;
+        var ValueTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.ValueTransform) || 
+                                  (typeof valueTransform !== 'undefined' ? valueTransform : ValueTransform);
+        var transformer = typeof ValueTransformClass === 'function' ? new ValueTransformClass() : ValueTransformClass;
         var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
         return transformedRecord;
     } catch (error) {
@@ -253,7 +245,9 @@ function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
 async function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     // Enrich (Async): Enrich records with external API calls
     try {
-        var transformer = valueTransform;
+        var ValueTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.ValueTransform) || 
+                                  (typeof valueTransform !== 'undefined' ? valueTransform : ValueTransform);
+        var transformer = typeof ValueTransformClass === 'function' ? new ValueTransformClass() : ValueTransformClass;
         var transformedRecord = await transformer.transformAsync(valueObject, keyObject, topic, timestamp);
         
         return transformedRecord;
@@ -268,7 +262,9 @@ async function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
 function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     // Un Nesting: Flatten nested objects/arrays
     try {
-        var transformer = valueTransform;
+        var ValueTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.ValueTransform) || 
+                                  (typeof valueTransform !== 'undefined' ? valueTransform : ValueTransform);
+        var transformer = typeof ValueTransformClass === 'function' ? new ValueTransformClass() : ValueTransformClass;
         var transformedRecord = transformer.transformFlatten(valueObject, keyObject, topic, timestamp);
         return transformedRecord;
     } catch (error) {
@@ -317,7 +313,6 @@ function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     var transformer = new OrderTransformer();
     var transformedRecord = transformer.transform(valueObject);
     
-    // Add routing metadata
     transformedRecord.routing_info = {
         source_topic: topic,
         processed_timestamp: timestamp,
@@ -387,7 +382,6 @@ function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
         delete baseRecord.customer;
     }
     
-    // Add flattening metadata
     baseRecord.flattened_at = new Date().toISOString();
     baseRecord.original_structure_preserved = false;
     
@@ -408,7 +402,9 @@ function generateKeyTransform(transform, useTemplateStructure = false) {
         return `// Key transform function using template structure
 function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
     // Transform the record key using template-based logic
-    var transformer = keyTransform;
+    var KeyTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.KeyTransform) || 
+                              (typeof keyTransform !== 'undefined' ? keyTransform : KeyTransform);
+    var transformer = typeof KeyTransformClass === 'function' ? new KeyTransformClass() : KeyTransformClass;
     return transformer.transform(valueObject, keyObject, topic, timestamp);
 }`;
     }
@@ -423,7 +419,6 @@ function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
         return 'rpos-' + keyObject;
     }
     
-    // Add timestamp prefix for time-based partitioning
     var moment = require('moment');
     var datePrefix = moment(timestamp).format('YYYY-MM-DD');
     return datePrefix + '-' + keyObject;
@@ -435,7 +430,9 @@ function generateTopicTransform(transform, useTemplateStructure = false) {
         return `// Topic transform function using template structure
 function _streamkap_transform_topic(valueObject, keyObject, topic, timestamp) {
     // Fan Out: Route records to different topics using template-based logic
-    var transformer = topicTransform;
+    var TopicTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.TopicTransform) || 
+                                (typeof topicTransform !== 'undefined' ? topicTransform : TopicTransform);
+    var transformer = typeof TopicTransformClass === 'function' ? new TopicTransformClass() : TopicTransformClass;
     return transformer.transform(valueObject, keyObject, topic, timestamp);
 }`;
     }
@@ -517,13 +514,11 @@ function generateSharedUtilities() {
     return `// Shared utilities (bundled into each transform for self-containment)
 
 function formatTimestamp(timestamp) {
-    // Use bundled moment.js for date formatting
     var moment = require('moment');
     return moment(timestamp).format('YYYY-MM-DD HH:mm:ss');
 }
 
 function generateProcessingId() {
-    // Generate unique processing ID
     return 'proc-' + Math.random().toString(36).substr(2, 9);
 }
 

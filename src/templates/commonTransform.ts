@@ -22,7 +22,12 @@ export class CommonTransform {
         
         // Example using lodash for data manipulation
         const cleanedRecord = _.omitBy(inputRecord, _.isUndefined);
-        const hasValidData = _.has(cleanedRecord, 'id') && !_.isEmpty(cleanedRecord.id);
+        // Align with validateRecord - check for id, _id, or order_id
+        const hasValidData = Boolean(
+            (cleanedRecord.id && !_.isEmpty(cleanedRecord.id)) ||
+            (cleanedRecord._id && !_.isEmpty(cleanedRecord._id)) ||
+            (cleanedRecord.order_id && !_.isEmpty(cleanedRecord.order_id))
+        );
         
         // Example using uuid for unique identifiers
         const processingId = uuidv4();
@@ -31,28 +36,41 @@ export class CommonTransform {
             // Copy original fields (customize based on your data structure)
             ...cleanedRecord,
             
-            // Add processing metadata
-            processed_at: now.toISOString(),
-            processed_time: now.format('YYYY-MM-DD HH:mm:ss'),
+            // Always use UTC to avoid timezone ambiguity
+            processed_at: now.utc().toISOString(),
+            processed_time: now.utc().format('YYYY-MM-DD HH:mm:ss') + 'Z',
             processing_id: processingId,
             has_valid_data: hasValidData,
             field_count: _.keys(cleanedRecord).length,
             normalized_timestamp: normalizedTimestamp,
             
-            // Add version for tracking
             transform_version: '1.0.0'
         };
     }
     
     /**
      * Normalize timestamp to ensure consistent format
+     * Handles seconds, milliseconds, microseconds, and nanoseconds robustly
      */
     public normalizeTimestamp(timestamp: number): number {
-        // Ensure timestamp is in milliseconds
-        if (timestamp < 1000000000000) { // Less than year 2001 in milliseconds
-            return timestamp * 1000; // Convert from seconds to milliseconds
+        if (typeof timestamp !== 'number' || isNaN(timestamp) || timestamp <= 0) {
+            return Date.now();
         }
-        return timestamp;
+        
+        // Determine timestamp precision based on magnitude
+        if (timestamp < 1e10) {
+            // Seconds (10 digits or less) - convert to milliseconds
+            return timestamp * 1000;
+        } else if (timestamp < 1e13) {
+            // Milliseconds (10-13 digits) - already correct format
+            return timestamp;
+        } else if (timestamp < 1e16) {
+            // Microseconds (13-16 digits) - convert to milliseconds
+            return Math.floor(timestamp / 1000);
+        } else {
+            // Nanoseconds (16+ digits) - convert to milliseconds
+            return Math.floor(timestamp / 1000000);
+        }
     }
     
     /**
@@ -63,7 +81,6 @@ export class CommonTransform {
             return 'default-topic';
         }
         
-        // Replace invalid characters with hyphens
         let sanitized = topicName.replace(/[^a-zA-Z0-9._-]/g, '-');
         
         // Ensure it doesn't start with a dot
@@ -173,11 +190,10 @@ export class CommonTransform {
             return { valid: false, issues };
         }
         
-        // Check for common data type issues
         Object.keys(record).forEach(key => {
             const value = record[key];
             
-            // Check for problematic data types that can cause issues
+            // Test if object is serializable
             if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
                 try {
                     JSON.stringify(value); // Test if object is serializable
@@ -186,12 +202,10 @@ export class CommonTransform {
                 }
             }
             
-            // Check for extremely large strings that could cause memory issues
             if (typeof value === 'string' && value.length > 100000) {
                 issues.push(`Field '${key}' contains extremely large string (${value.length} chars)`);
             }
             
-            // Check for circular references (partial check)
             if (typeof value === 'object' && value !== null) {
                 const seen = new Set();
                 try {
@@ -213,24 +227,34 @@ export class CommonTransform {
     
     /**
      * Memory optimization - remove undefined values to reduce payload size
+     * Uses cycle detection to prevent infinite recursion on circular references
      */
-    public removeUndefinedValues(obj: any): any {
+    public removeUndefinedValues(obj: any, seen = new WeakSet()): any {
         if (obj === null || typeof obj !== 'object') {
             return obj;
         }
         
+        // Cycle detection - prevent infinite recursion
+        if (seen.has(obj)) {
+            return '[Circular Reference]';
+        }
+        seen.add(obj);
+        
         if (Array.isArray(obj)) {
-            return obj.map(item => this.removeUndefinedValues(item)).filter(item => item !== undefined);
+            const result = obj.map(item => this.removeUndefinedValues(item, seen)).filter(item => item !== undefined);
+            seen.delete(obj);
+            return result;
         }
         
         const cleaned: any = {};
         Object.keys(obj).forEach(key => {
             const value = obj[key];
             if (value !== undefined) {
-                cleaned[key] = this.removeUndefinedValues(value);
+                cleaned[key] = this.removeUndefinedValues(value, seen);
             }
         });
         
+        seen.delete(obj);
         return cleaned;
     }
     
@@ -276,7 +300,6 @@ export class CommonTransform {
             }
         }
         
-        // Add more filtering logic here
         return true;
     }
     
@@ -320,9 +343,8 @@ export class CommonTransform {
                 this.log('warn', 'Data validation issues during enrichment', { issues: validation.issues });
             }
             
-            // Example: simulate API call for enrichment
-            // Replace with your actual API calls
-            const recordId = record?.id || record?._id || record?.order_id;
+            // Simulate API call for enrichment
+                const recordId = record?.id || record?._id || record?.order_id;
             if (!recordId) {
                 throw new Error('No valid ID found for enrichment');
             }
@@ -363,7 +385,6 @@ export class CommonTransform {
         // Example flattening logic - customize for your data structure
         const flattened = { ...record };
         
-        // Example: flatten nested user object
         if (record.user) {
             flattened.user_id = record.user.id;
             flattened.user_name = record.user.name;
@@ -371,7 +392,6 @@ export class CommonTransform {
             delete flattened.user;
         }
         
-        // Example: flatten nested metadata
         if (record.metadata) {
             Object.keys(record.metadata).forEach(key => {
                 flattened[`metadata_${key}`] = record.metadata[key];
