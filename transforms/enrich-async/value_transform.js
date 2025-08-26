@@ -1,7 +1,7 @@
 // Streamkap enrich_async Transform (JAVASCRIPT)
 // Async Enrich - enrich records with REST API calls
 // Function: value_transform
-// Generated on: 2025-08-22T08:04:44.267Z
+// Generated on: 2025-08-26T08:40:08.710Z
 // 
 // Implementation details:
 // - Transform type: enrich_async
@@ -14,6 +14,7 @@ var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __assign = Object.assign;
 var __markAsModule = (target) => __defProp(target, "__esModule", {value: true});
 var __commonJS = (callback, module) => () => {
   if (!module) {
@@ -32,6 +33,28 @@ var __exportStar = (target, module, desc) => {
 };
 var __toModule = (module) => {
   return __exportStar(__markAsModule(__defProp(module != null ? __create(__getProtoOf(module)) : {}, "default", module && module.__esModule && "default" in module ? {get: () => module.default, enumerable: true} : {value: module, enumerable: true})), module);
+};
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (result) => {
+      return result.done ? resolve(result.value) : Promise.resolve(result.value).then(fulfilled, rejected);
+    };
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
 };
 
 // node_modules/moment/moment.js
@@ -4522,10 +4545,10 @@ var require_lodash = __commonJS((exports, module) => {
       }();
       var ctxClearTimeout = context.clearTimeout !== root.clearTimeout && context.clearTimeout, ctxNow = Date2 && Date2.now !== root.Date.now && Date2.now, ctxSetTimeout = context.setTimeout !== root.setTimeout && context.setTimeout;
       var nativeCeil = Math2.ceil, nativeFloor = Math2.floor, nativeGetSymbols = Object2.getOwnPropertySymbols, nativeIsBuffer = Buffer2 ? Buffer2.isBuffer : undefined2, nativeIsFinite = context.isFinite, nativeJoin = arrayProto.join, nativeKeys = overArg(Object2.keys, Object2), nativeMax = Math2.max, nativeMin = Math2.min, nativeNow = Date2.now, nativeParseInt = context.parseInt, nativeRandom = Math2.random, nativeReverse = arrayProto.reverse;
-      var DataView = getNative(context, "DataView"), Map = getNative(context, "Map"), Promise2 = getNative(context, "Promise"), Set = getNative(context, "Set"), WeakMap = getNative(context, "WeakMap"), nativeCreate = getNative(Object2, "create");
+      var DataView = getNative(context, "DataView"), Map = getNative(context, "Map"), Promise2 = getNative(context, "Promise"), Set2 = getNative(context, "Set"), WeakMap = getNative(context, "WeakMap"), nativeCreate = getNative(Object2, "create");
       var metaMap = WeakMap && new WeakMap();
       var realNames = {};
-      var dataViewCtorString = toSource(DataView), mapCtorString = toSource(Map), promiseCtorString = toSource(Promise2), setCtorString = toSource(Set), weakMapCtorString = toSource(WeakMap);
+      var dataViewCtorString = toSource(DataView), mapCtorString = toSource(Map), promiseCtorString = toSource(Promise2), setCtorString = toSource(Set2), weakMapCtorString = toSource(WeakMap);
       var symbolProto = Symbol2 ? Symbol2.prototype : undefined2, symbolValueOf = symbolProto ? symbolProto.valueOf : undefined2, symbolToString = symbolProto ? symbolProto.toString : undefined2;
       function lodash(value) {
         if (isObjectLike(value) && !isArray(value) && !(value instanceof LazyWrapper)) {
@@ -4980,7 +5003,7 @@ var require_lodash = __commonJS((exports, module) => {
         if (typeof func != "function") {
           throw new TypeError2(FUNC_ERROR_TEXT);
         }
-        return setTimeout(function() {
+        return setTimeout2(function() {
           func.apply(undefined2, args);
         }, wait);
       }
@@ -6217,8 +6240,8 @@ var require_lodash = __commonJS((exports, module) => {
           return func(number);
         };
       }
-      var createSet = !(Set && 1 / setToArray(new Set([, -0]))[1] == INFINITY) ? noop : function(values2) {
-        return new Set(values2);
+      var createSet = !(Set2 && 1 / setToArray(new Set2([, -0]))[1] == INFINITY) ? noop : function(values2) {
+        return new Set2(values2);
       };
       function createToPairs(keysFunc) {
         return function(object) {
@@ -6517,7 +6540,7 @@ var require_lodash = __commonJS((exports, module) => {
         return result2;
       };
       var getTag = baseGetTag;
-      if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag || Map && getTag(new Map()) != mapTag || Promise2 && getTag(Promise2.resolve()) != promiseTag || Set && getTag(new Set()) != setTag || WeakMap && getTag(new WeakMap()) != weakMapTag) {
+      if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag || Map && getTag(new Map()) != mapTag || Promise2 && getTag(Promise2.resolve()) != promiseTag || Set2 && getTag(new Set2()) != setTag || WeakMap && getTag(new WeakMap()) != weakMapTag) {
         getTag = function(value) {
           var result2 = baseGetTag(value), Ctor = result2 == objectTag ? value.constructor : undefined2, ctorString = Ctor ? toSource(Ctor) : "";
           if (ctorString) {
@@ -6789,7 +6812,7 @@ var require_lodash = __commonJS((exports, module) => {
         return object[key];
       }
       var setData = shortOut(baseSetData);
-      var setTimeout = ctxSetTimeout || function(func, wait) {
+      var setTimeout2 = ctxSetTimeout || function(func, wait) {
         return root.setTimeout(func, wait);
       };
       var setToString = shortOut(baseSetToString);
@@ -7581,7 +7604,7 @@ var require_lodash = __commonJS((exports, module) => {
         }
         function leadingEdge(time) {
           lastInvokeTime = time;
-          timerId = setTimeout(timerExpired, wait);
+          timerId = setTimeout2(timerExpired, wait);
           return leading ? invokeFunc(time) : result2;
         }
         function remainingWait(time) {
@@ -7597,7 +7620,7 @@ var require_lodash = __commonJS((exports, module) => {
           if (shouldInvoke(time)) {
             return trailingEdge(time);
           }
-          timerId = setTimeout(timerExpired, remainingWait(time));
+          timerId = setTimeout2(timerExpired, remainingWait(time));
         }
         function trailingEdge(time) {
           timerId = undefined2;
@@ -7628,12 +7651,12 @@ var require_lodash = __commonJS((exports, module) => {
             }
             if (maxing) {
               clearTimeout(timerId);
-              timerId = setTimeout(timerExpired, wait);
+              timerId = setTimeout2(timerExpired, wait);
               return invokeFunc(lastCallTime);
             }
           }
           if (timerId === undefined2) {
-            timerId = setTimeout(timerExpired, wait);
+            timerId = setTimeout2(timerExpired, wait);
           }
           return result2;
         }
@@ -9218,7 +9241,7 @@ var require_lodash = __commonJS((exports, module) => {
   }).call(exports);
 });
 
-// src/OrderTransformer.ts
+// src/templates/commonTransform.ts
 var import_moment = __toModule(require_moment());
 var import_lodash = __toModule(require_lodash());
 
@@ -9275,60 +9298,868 @@ function v4(options, buf, offset) {
 }
 var v4_default = v4;
 
-// src/OrderTransformer.ts
-var OrderTransformer = class {
-  transform(inputOrder) {
-    if (inputOrder.order_type == "OrderType1") {
-      return this.transformOrderType1(inputOrder);
+// src/templates/commonTransform.ts
+var CommonTransform = class {
+  transformRecord(inputRecord) {
+    const now = (0, import_moment.default)();
+    const cleanedRecord = import_lodash.default.omitBy(inputRecord, import_lodash.default.isUndefined);
+    const hasValidData = import_lodash.default.has(cleanedRecord, "id") && !import_lodash.default.isEmpty(cleanedRecord.id);
+    const processingId = v4_default();
+    return __assign(__assign({}, cleanedRecord), {
+      processed_at: now.toISOString(),
+      processed_time: now.format("YYYY-MM-DD HH:mm:ss"),
+      processing_id: processingId,
+      has_valid_data: hasValidData,
+      field_count: import_lodash.default.keys(cleanedRecord).length,
+      transform_version: "1.0.0"
+    });
+  }
+  validateRecord(record) {
+    return Boolean(record && typeof record === "object" && (record.id && typeof record.id === "string" || record._id && typeof record._id === "string" || record.order_id && typeof record.order_id === "string"));
+  }
+  shouldKeepRecord(record) {
+    if (!this.validateRecord(record)) {
+      return false;
     }
-    return this.transformOrderType2(inputOrder);
+    const idField = record.id || record._id || record.order_id;
+    if (idField && typeof idField === "string" && idField.includes("test")) {
+      return false;
+    }
+    return true;
   }
-  transformOrderType1(inputOrder) {
-    const now = (0, import_moment.default)();
-    const cleanedOrder = import_lodash.default.omitBy(inputOrder, import_lodash.default.isUndefined);
-    const hasValidCustomer = import_lodash.default.has(cleanedOrder, "customer.name") && !import_lodash.default.isEmpty(cleanedOrder.customer.name);
-    const processingId = v4_default();
-    return {
-      version: "0.1.4",
-      _id: inputOrder._id,
-      order_number: inputOrder.order_number,
-      location_id: inputOrder.location_id,
-      order_type: inputOrder.order_type,
-      channel: inputOrder.channel,
-      customer: inputOrder.customer,
-      organization_id: inputOrder.organization_id,
-      processed_at: now.toISOString(),
-      processed_time: now.format("YYYY-MM-DD HH:mm:ss"),
-      processing_id: processingId,
-      has_valid_customer: hasValidCustomer,
-      field_count: import_lodash.default.keys(cleanedOrder).length
-    };
+  getRoutingTopics(record, originalTopic) {
+    const topics = [];
+    if (record.type === "high_priority") {
+      topics.push("high-priority-records");
+    } else {
+      topics.push("standard-records");
+    }
+    if (!this.validateRecord(record)) {
+      topics.push("error-records");
+    }
+    return topics.length > 1 ? topics : topics[0];
   }
-  transformOrderType2(inputOrder) {
-    const now = (0, import_moment.default)();
-    const cleanedOrder = import_lodash.default.omitBy(inputOrder, import_lodash.default.isUndefined);
-    const hasValidCustomer = import_lodash.default.has(cleanedOrder, "customer.name") && !import_lodash.default.isEmpty(cleanedOrder.customer.name);
-    const processingId = v4_default();
+  enrichRecord(record) {
+    return __async(this, null, function* () {
+      try {
+        const enrichmentData = yield this.simulateApiCall(record.id);
+        return __assign(__assign({}, record), {
+          enrichment: enrichmentData,
+          enriched_at: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Enrichment failed:", error);
+        return record;
+      }
+    });
+  }
+  flattenRecord(record) {
+    const flattened = __assign({}, record);
+    if (record.user) {
+      flattened.user_id = record.user.id;
+      flattened.user_name = record.user.name;
+      flattened.user_email = record.user.email;
+      delete flattened.user;
+    }
+    if (record.metadata) {
+      Object.keys(record.metadata).forEach((key) => {
+        flattened[`metadata_${key}`] = record.metadata[key];
+      });
+      delete flattened.metadata;
+    }
+    return __assign(__assign({}, flattened), {
+      flattened_at: new Date().toISOString(),
+      original_structure_preserved: false
+    });
+  }
+  simulateApiCall(id) {
+    return __async(this, null, function* () {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            external_id: `ext_${id}`,
+            score: Math.floor(Math.random() * 100),
+            category: "premium",
+            enriched_timestamp: new Date().toISOString()
+          });
+        }, 100);
+      });
+    });
+  }
+};
+
+// src/templates/valueTransform.ts
+var ValueTransform = class {
+  constructor() {
+    this.commonTransform = new CommonTransform();
+  }
+  transform(valueObject, keyObject, topic, timestamp) {
+    if (!this.commonTransform.shouldKeepRecord(valueObject)) {
+      return null;
+    }
+    try {
+      const transformedRecord = this.commonTransform.transformRecord(valueObject);
+      transformedRecord.source_topic = topic;
+      transformedRecord.source_timestamp = timestamp;
+      transformedRecord.source_key = keyObject;
+      transformedRecord.transform_type = "value";
+      return transformedRecord;
+    } catch (error) {
+      console.error("Value transformation failed:", error);
+      return __assign(__assign({}, valueObject), {
+        transform_error: true,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_timestamp: new Date().toISOString()
+      });
+    }
+  }
+  transformAsync(valueObject, keyObject, topic, timestamp) {
+    return __async(this, null, function* () {
+      if (!this.commonTransform.shouldKeepRecord(valueObject)) {
+        return null;
+      }
+      try {
+        let transformedRecord = this.commonTransform.transformRecord(valueObject);
+        transformedRecord = yield this.commonTransform.enrichRecord(transformedRecord);
+        transformedRecord.source_topic = topic;
+        transformedRecord.source_timestamp = timestamp;
+        transformedRecord.source_key = keyObject;
+        transformedRecord.transform_type = "async_value";
+        return transformedRecord;
+      } catch (error) {
+        console.error("Async value transformation failed:", error);
+        return __assign(__assign({}, valueObject), {
+          transform_error: true,
+          error_message: error instanceof Error ? error.message : String(error),
+          error_timestamp: new Date().toISOString()
+        });
+      }
+    });
+  }
+  transformFlatten(valueObject, keyObject, topic, timestamp) {
+    if (!this.commonTransform.validateRecord(valueObject)) {
+      return null;
+    }
+    try {
+      const flattenedRecord = this.commonTransform.flattenRecord(valueObject);
+      flattenedRecord.source_topic = topic;
+      flattenedRecord.source_timestamp = timestamp;
+      flattenedRecord.source_key = keyObject;
+      flattenedRecord.transform_type = "flatten";
+      return flattenedRecord;
+    } catch (error) {
+      console.error("Flatten transformation failed:", error);
+      return valueObject;
+    }
+  }
+};
+
+// src/templates/keyTransform.ts
+var import_moment2 = __toModule(require_moment());
+var KeyTransform = class {
+  transform(valueObject, keyObject, topic, timestamp) {
+    try {
+      if (valueObject && valueObject.type) {
+        return `${valueObject.type}-${keyObject}`;
+      }
+      const datePrefix = (0, import_moment2.default)(timestamp).format("YYYY-MM-DD");
+      if (valueObject && valueObject.user_id) {
+        const userHash = this.simpleHash(valueObject.user_id) % 10;
+        return `${datePrefix}-partition-${userHash}-${keyObject}`;
+      }
+      const topicPrefix = topic.replace(/[^a-zA-Z0-9]/g, "_");
+      return `${topicPrefix}-${datePrefix}-${keyObject}`;
+    } catch (error) {
+      console.error("Key transformation failed:", error);
+      return `error-${keyObject}`;
+    }
+  }
+  transformWithContext(valueObject, keyObject, topic, timestamp) {
+    try {
+      if (valueObject && valueObject.tenant_id) {
+        const tenantPrefix = `tenant-${valueObject.tenant_id}`;
+        const datePrefix = (0, import_moment2.default)(timestamp).format("YYYY-MM");
+        return `${tenantPrefix}-${datePrefix}-${keyObject}`;
+      }
+      if (valueObject && valueObject.priority) {
+        const priorityPrefix = valueObject.priority === "high" ? "pri-high" : "pri-normal";
+        return `${priorityPrefix}-${keyObject}`;
+      }
+      if (valueObject && valueObject.region) {
+        return `${valueObject.region}-${keyObject}`;
+      }
+      return this.transform(valueObject, keyObject, topic, timestamp);
+    } catch (error) {
+      console.error("Context key transformation failed:", error);
+      return this.transform(valueObject, keyObject, topic, timestamp);
+    }
+  }
+  transformForFanOut(valueObject, keyObject, topic, timestamp) {
+    try {
+      if (valueObject && valueObject.id) {
+        return `fanout-${valueObject.id}`;
+      }
+      if (valueObject && valueObject.customer_id && valueObject.order_id) {
+        return `${valueObject.customer_id}-${valueObject.order_id}`;
+      }
+      const recordHash = this.simpleHash(JSON.stringify(valueObject));
+      return `fanout-${recordHash}-${keyObject}`;
+    } catch (error) {
+      console.error("Fan-out key transformation failed:", error);
+      return `fanout-error-${keyObject}`;
+    }
+  }
+  simpleHash(str) {
+    let hash = 0;
+    if (str.length === 0)
+      return hash;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  }
+  validateKey(key) {
+    if (!key || typeof key !== "string") {
+      return false;
+    }
+    if (key.length > 255) {
+      console.warn(`Key is quite long (${key.length} chars): ${key.substring(0, 50)}...`);
+      return false;
+    }
+    const problematicChars = /[<>:"/\\|?*\x00-\x1f]/;
+    if (problematicChars.test(key)) {
+      console.warn(`Key contains problematic characters: ${key}`);
+      return false;
+    }
+    return true;
+  }
+  sanitizeKey(key) {
+    if (!key)
+      return "empty-key";
+    let sanitized = key.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_");
+    if (sanitized.length > 255) {
+      sanitized = sanitized.substring(0, 252) + "...";
+    }
+    return sanitized;
+  }
+};
+
+// src/templates/topicTransform.ts
+var TopicTransform = class {
+  constructor() {
+    this.commonTransform = new CommonTransform();
+  }
+  transform(valueObject, keyObject, topic, timestamp) {
+    try {
+      const topics = [];
+      const routingTopics = this.commonTransform.getRoutingTopics(valueObject, topic);
+      const baseTopics = Array.isArray(routingTopics) ? routingTopics : [routingTopics];
+      topics.push(...baseTopics);
+      if (valueObject && valueObject.type) {
+        switch (valueObject.type) {
+          case "order":
+            topics.push("orders-processed");
+            break;
+          case "user":
+            topics.push("users-processed");
+            break;
+          case "payment":
+            topics.push("payments-processed");
+            break;
+          default:
+            topics.push("general-processed");
+        }
+      }
+      if (valueObject && valueObject.amount && valueObject.amount > 1e3) {
+        topics.push("high-value-records");
+      }
+      if (!this.commonTransform.validateRecord(valueObject)) {
+        topics.push("error-records");
+      }
+      const hour = new Date(timestamp).getHours();
+      if (hour >= 9 && hour <= 17) {
+        topics.push("business-hours-records");
+      } else {
+        topics.push("after-hours-records");
+      }
+      const uniqueTopics = Array.from(new Set(topics));
+      return uniqueTopics.length > 1 ? uniqueTopics : uniqueTopics[0];
+    } catch (error) {
+      console.error("Topic transformation failed:", error);
+      return "transform-errors";
+    }
+  }
+  simpleRoute(valueObject, keyObject, topic, timestamp) {
+    try {
+      if (valueObject && valueObject.customer_tier) {
+        switch (valueObject.customer_tier) {
+          case "premium":
+            return "premium-customer-records";
+          case "gold":
+            return "gold-customer-records";
+          case "standard":
+            return "standard-customer-records";
+          default:
+            return "unknown-tier-records";
+        }
+      }
+      if (valueObject && valueObject.region) {
+        return `${valueObject.region}-records`;
+      }
+      if (topic.includes("orders")) {
+        return "all-orders-processed";
+      } else if (topic.includes("users")) {
+        return "all-users-processed";
+      }
+      return "processed-records";
+    } catch (error) {
+      console.error("Simple topic routing failed:", error);
+      return "routing-errors";
+    }
+  }
+  complexRoute(valueObject, keyObject, topic, timestamp) {
+    const topics = [];
+    try {
+      if (valueObject && valueObject.type && valueObject.status) {
+        const typeStatusTopic = `${valueObject.type}-${valueObject.status}`;
+        topics.push(typeStatusTopic);
+      }
+      if (valueObject && valueObject.priority) {
+        topics.push(`priority-${valueObject.priority}`);
+      }
+      if (valueObject && valueObject.compliance_required) {
+        topics.push("compliance-records");
+      }
+      if (this.shouldRouteToAnalytics(valueObject)) {
+        topics.push("analytics-records");
+      }
+      const recordAge = timestamp ? Date.now() - timestamp : 0;
+      const thirtyDaysMs = 30 * 24 * 60 * 60 * 1e3;
+      if (recordAge > thirtyDaysMs) {
+        topics.push("archive-records");
+      } else {
+        topics.push("active-records");
+      }
+      const uniqueTopics = Array.from(new Set(topics));
+      return uniqueTopics.length > 1 ? uniqueTopics : uniqueTopics[0];
+    } catch (error) {
+      console.error("Complex routing failed:", error);
+      return "complex-routing-errors";
+    }
+  }
+  conditionalRoute(valueObject, keyObject, topic, timestamp) {
+    const routes = [];
+    try {
+      routes.push("main-processed");
+      if (valueObject && valueObject.customer_type === "vip") {
+        routes.push("vip-processing");
+      }
+      if (valueObject && valueObject.fraud_score > 0.8) {
+        routes.push("fraud-review");
+      }
+      if (valueObject && valueObject.country && valueObject.country !== "US") {
+        routes.push("international-compliance");
+      }
+      const isRealTime = Date.now() - timestamp < 5e3;
+      if (isRealTime) {
+        routes.push("realtime-processing");
+      } else {
+        routes.push("batch-processing");
+      }
+      return routes.length > 1 ? routes : routes[0];
+    } catch (error) {
+      console.error("Conditional routing failed:", error);
+      return "conditional-routing-errors";
+    }
+  }
+  shouldRouteToAnalytics(valueObject) {
+    if (!valueObject)
+      return false;
+    if (valueObject.amount && valueObject.amount > 500) {
+      return true;
+    }
+    if (valueObject.event_type && ["login", "purchase", "signup"].includes(valueObject.event_type)) {
+      return true;
+    }
+    if (valueObject.experiment_id) {
+      return true;
+    }
+    return false;
+  }
+  validateTopicName(topicName) {
+    if (!topicName || typeof topicName !== "string") {
+      return false;
+    }
+    const validPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!validPattern.test(topicName)) {
+      console.warn(`Invalid topic name: ${topicName}`);
+      return false;
+    }
+    if (topicName.length > 249) {
+      console.warn(`Topic name too long: ${topicName}`);
+      return false;
+    }
+    return true;
+  }
+  sanitizeTopicName(topicName) {
+    if (!topicName)
+      return "default-topic";
+    let sanitized = topicName.replace(/[^a-zA-Z0-9._-]/g, "-");
+    if (sanitized.startsWith(".")) {
+      sanitized = "topic" + sanitized;
+    }
+    if (sanitized.length > 249) {
+      sanitized = sanitized.substring(0, 249);
+    }
+    return sanitized;
+  }
+};
+
+// src/templates/valueSchemaTransform.ts
+var ValueSchemaTransform = class {
+  transform(valueObject, keyObject, topic, timestamp) {
+    try {
+      if (!this.validateInputSchema(valueObject)) {
+        throw new Error("Input schema validation failed");
+      }
+      const transformedValue = this.transformToOutputSchema(valueObject);
+      transformedValue._schema = {
+        version: "1.0.0",
+        transformed_at: new Date().toISOString(),
+        source_topic: topic,
+        transformation_type: "value_schema"
+      };
+      if (!this.validateOutputSchema(transformedValue)) {
+        throw new Error("Output schema validation failed");
+      }
+      return transformedValue;
+    } catch (error) {
+      console.error("Value schema transformation failed:", error);
+      return {
+        _error: true,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_timestamp: new Date().toISOString(),
+        original_value: valueObject
+      };
+    }
+  }
+  transformLegacyToNew(valueObject, keyObject, topic, timestamp) {
+    try {
+      const newSchema = {};
+      if (valueObject.old_field_name) {
+        newSchema.new_field_name = valueObject.old_field_name;
+      }
+      if (valueObject.string_number && typeof valueObject.string_number === "string") {
+        newSchema.actual_number = parseInt(valueObject.string_number, 10);
+      }
+      if (valueObject.flat_user_name && valueObject.flat_user_email) {
+        newSchema.user = {
+          name: valueObject.flat_user_name,
+          email: valueObject.flat_user_email
+        };
+      }
+      newSchema._migration = {
+        from_schema: "legacy_v1",
+        to_schema: "new_v2",
+        migrated_at: new Date().toISOString(),
+        source_topic: topic
+      };
+      Object.keys(valueObject).forEach((key) => {
+        if (!key.startsWith("old_") && !key.startsWith("flat_") && !newSchema[key]) {
+          newSchema[key] = valueObject[key];
+        }
+      });
+      return newSchema;
+    } catch (error) {
+      console.error("Legacy schema transformation failed:", error);
+      return this.wrapError(error instanceof Error ? error : new Error(String(error)), valueObject);
+    }
+  }
+  transformDataTypes(valueObject) {
+    const transformed = {};
+    Object.keys(valueObject).forEach((key) => {
+      const value = valueObject[key];
+      if (key.endsWith("_id") && typeof value !== "string") {
+        transformed[key] = String(value);
+      } else if (key.endsWith("_count") || key.endsWith("_number")) {
+        transformed[key] = Number(value);
+      } else if (key.endsWith("_flag") || key.endsWith("_enabled")) {
+        transformed[key] = Boolean(value);
+      } else if (key.endsWith("_at") || key.endsWith("_time")) {
+        transformed[key] = this.ensureISOTimestamp(value);
+      } else if (key.endsWith("_json") && typeof value === "string") {
+        try {
+          transformed[key] = JSON.parse(value);
+        } catch (e) {
+          transformed[key] = value;
+        }
+      } else {
+        transformed[key] = value;
+      }
+    });
+    return transformed;
+  }
+  normalizeSchema(valueObject) {
+    const normalized = {};
+    Object.keys(valueObject).forEach((key) => {
+      const normalizedKey = this.toSnakeCase(key);
+      const value = valueObject[key];
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        normalized[normalizedKey] = this.normalizeSchema(value);
+      } else if (Array.isArray(value)) {
+        normalized[normalizedKey] = value.map((item) => item && typeof item === "object" ? this.normalizeSchema(item) : item);
+      } else {
+        normalized[normalizedKey] = value;
+      }
+    });
+    return normalized;
+  }
+  validateInputSchema(valueObject) {
+    if (!valueObject || typeof valueObject !== "object") {
+      return false;
+    }
+    const requiredFields = ["id"];
+    for (const field of requiredFields) {
+      if (!valueObject.hasOwnProperty(field)) {
+        console.error(`Missing required field: ${field}`);
+        return false;
+      }
+    }
+    if (valueObject.id && typeof valueObject.id !== "string") {
+      console.error('Field "id" must be a string');
+      return false;
+    }
+    if (valueObject.amount && typeof valueObject.amount !== "number") {
+      console.error('Field "amount" must be a number');
+      return false;
+    }
+    return true;
+  }
+  validateOutputSchema(valueObject) {
+    if (!valueObject || typeof valueObject !== "object") {
+      return false;
+    }
+    if (!valueObject._schema) {
+      console.error("Missing schema metadata");
+      return false;
+    }
+    return true;
+  }
+  transformToOutputSchema(valueObject) {
+    let output = this.normalizeSchema(valueObject);
+    output = this.transformDataTypes(output);
+    output.processed_timestamp = new Date().toISOString();
+    output = this.applyBusinessTransformations(output);
+    return output;
+  }
+  applyBusinessTransformations(valueObject) {
+    const transformed = __assign({}, valueObject);
+    if (transformed.price && transformed.quantity) {
+      transformed.total_amount = transformed.price * transformed.quantity;
+    }
+    if (transformed.status) {
+      transformed.status = transformed.status.toLowerCase();
+    }
+    if (transformed.created_at) {
+      const createdDate = new Date(transformed.created_at);
+      const now = new Date();
+      transformed.age_days = Math.floor((now.getTime() - createdDate.getTime()) / (1e3 * 60 * 60 * 24));
+    }
+    return transformed;
+  }
+  ensureISOTimestamp(value) {
+    if (!value)
+      return new Date().toISOString();
+    try {
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        return new Date().toISOString();
+      }
+      return date.toISOString();
+    } catch (e) {
+      return new Date().toISOString();
+    }
+  }
+  toSnakeCase(str) {
+    return str.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
+  }
+  wrapError(error, originalValue) {
     return {
-      version: "0.1.4",
-      _id: inputOrder.order_id,
-      order_number: inputOrder.order_number,
-      location_id: inputOrder.location_id,
-      order_type: inputOrder.order_type,
-      channel: inputOrder.channel,
-      customer: inputOrder.customer,
-      organization_id: inputOrder.customer.organization_id,
-      processed_at: now.toISOString(),
-      processed_time: now.format("YYYY-MM-DD HH:mm:ss"),
-      processing_id: processingId,
-      has_valid_customer: hasValidCustomer,
-      field_count: import_lodash.default.keys(cleanedOrder).length
+      _schema_error: true,
+      error_message: error.message,
+      error_timestamp: new Date().toISOString(),
+      original_value: originalValue
     };
   }
 };
 
-// src/index.ts
-var transformer = new OrderTransformer();
+// src/templates/keySchemaTransform.ts
+var KeySchemaTransform = class {
+  transform(valueObject, keyObject, topic, timestamp) {
+    try {
+      if (!keyObject) {
+        return this.generateDefaultKey(valueObject, topic, timestamp);
+      }
+      if (!this.validateInputKeySchema(keyObject)) {
+        throw new Error("Input key schema validation failed");
+      }
+      const transformedKey = this.transformToStandardKeySchema(keyObject, valueObject, topic, timestamp);
+      if (!this.validateOutputKeySchema(transformedKey)) {
+        throw new Error("Output key schema validation failed");
+      }
+      return transformedKey;
+    } catch (error) {
+      console.error("Key schema transformation failed:", error);
+      return {
+        _key_error: true,
+        error_message: error instanceof Error ? error.message : String(error),
+        original_key: keyObject,
+        fallback_key: this.generateFallbackKey(valueObject, topic)
+      };
+    }
+  }
+  transformStringToStructured(valueObject, keyObject, topic, timestamp) {
+    try {
+      const structuredKey = {
+        key: keyObject,
+        partition_info: this.calculatePartitionInfo(keyObject, valueObject),
+        time_bucket: this.getTimeBucket(timestamp),
+        business_context: this.extractBusinessContext(valueObject),
+        source_topic: topic,
+        schema_version: "1.0.0"
+      };
+      return structuredKey;
+    } catch (error) {
+      console.error("String to structured key transformation failed:", error);
+      return {key: keyObject, error: error instanceof Error ? error.message : String(error)};
+    }
+  }
+  transformToOptimized(valueObject, keyObject, topic, timestamp) {
+    try {
+      if (typeof keyObject === "string") {
+        return keyObject;
+      }
+      const optimizedKey = {};
+      if (keyObject.id) {
+        optimizedKey.id = keyObject.id;
+      }
+      if (keyObject.tenant_id) {
+        optimizedKey.tenant = keyObject.tenant_id;
+      }
+      if (keyObject.type) {
+        optimizedKey.type = keyObject.type;
+      }
+      optimizedKey.ts = Math.floor(timestamp / 1e3);
+      if (keyObject.key) {
+        optimizedKey.hash = this.simpleHash(keyObject.key) % 100;
+      }
+      return optimizedKey;
+    } catch (error) {
+      console.error("Key optimization failed:", error);
+      return keyObject;
+    }
+  }
+  transformForMultiTenant(valueObject, keyObject, topic, timestamp) {
+    try {
+      const tenantKey = {
+        tenant_id: this.extractTenantId(valueObject, keyObject),
+        tenant_key: keyObject,
+        tenant_shard: this.calculateTenantShard(valueObject),
+        time_partition: this.getTimePartition(timestamp),
+        schema_type: "multi_tenant_key",
+        version: "1.0.0"
+      };
+      return tenantKey;
+    } catch (error) {
+      console.error("Multi-tenant key transformation failed:", error);
+      return this.generateTenantFallbackKey(valueObject, keyObject);
+    }
+  }
+  validateInputKeySchema(keyObject) {
+    if (!keyObject) {
+      return false;
+    }
+    if (typeof keyObject === "string") {
+      return keyObject.length > 0 && keyObject.length <= 255;
+    }
+    if (typeof keyObject === "number") {
+      return !isNaN(keyObject);
+    }
+    if (typeof keyObject === "object") {
+      if (!keyObject.id && !keyObject.key) {
+        console.error('Structured key must have either "id" or "key" field');
+        return false;
+      }
+      if (keyObject.id && typeof keyObject.id !== "string" && typeof keyObject.id !== "number") {
+        console.error('Key "id" field must be string or number');
+        return false;
+      }
+    }
+    return true;
+  }
+  validateOutputKeySchema(keyObject) {
+    if (!keyObject) {
+      console.error("Output key cannot be null");
+      return false;
+    }
+    const serialized = JSON.stringify(keyObject);
+    if (serialized.length > 1024) {
+      console.warn(`Key is large (${serialized.length} bytes), may affect performance`);
+    }
+    return true;
+  }
+  transformToStandardKeySchema(keyObject, valueObject, topic, timestamp) {
+    if (typeof keyObject === "string") {
+      return {
+        key: keyObject,
+        type: "string",
+        partition_hint: this.simpleHash(keyObject) % 32
+      };
+    }
+    if (typeof keyObject === "number") {
+      return {
+        key: keyObject.toString(),
+        type: "numeric",
+        partition_hint: keyObject % 32
+      };
+    }
+    if (typeof keyObject === "object") {
+      const standardKey = __assign(__assign({}, keyObject), {
+        _metadata: {
+          transformed_at: new Date(timestamp).toISOString(),
+          source_topic: topic,
+          schema_version: "1.0.0"
+        }
+      });
+      if (!standardKey.partition_hint) {
+        const keyStr = standardKey.id || standardKey.key || JSON.stringify(standardKey);
+        standardKey.partition_hint = this.simpleHash(keyStr) % 32;
+      }
+      return standardKey;
+    }
+    return {key: String(keyObject), type: "fallback"};
+  }
+  generateDefaultKey(valueObject, topic, timestamp) {
+    if (valueObject && valueObject.id) {
+      return {
+        key: valueObject.id,
+        type: "generated_from_value_id",
+        generated_at: new Date(timestamp).toISOString()
+      };
+    }
+    if (valueObject && valueObject.uuid) {
+      return {
+        key: valueObject.uuid,
+        type: "generated_from_value_uuid",
+        generated_at: new Date(timestamp).toISOString()
+      };
+    }
+    const uuid = this.generateUUID();
+    return {
+      key: uuid,
+      type: "generated_uuid",
+      generated_at: new Date(timestamp).toISOString(),
+      warning: "No natural key found, generated UUID"
+    };
+  }
+  generateFallbackKey(valueObject, topic) {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `fallback-${topic}-${timestamp}-${random}`;
+  }
+  generateTenantFallbackKey(valueObject, keyObject) {
+    return {
+      tenant_id: this.extractTenantId(valueObject, keyObject) || "unknown",
+      tenant_key: keyObject || "fallback",
+      error: true,
+      generated_at: new Date().toISOString()
+    };
+  }
+  extractTenantId(valueObject, keyObject) {
+    if (valueObject && valueObject.tenant_id) {
+      return valueObject.tenant_id;
+    }
+    if (valueObject && valueObject.organization_id) {
+      return valueObject.organization_id;
+    }
+    if (keyObject && typeof keyObject === "object" && keyObject.tenant_id) {
+      return keyObject.tenant_id;
+    }
+    return null;
+  }
+  calculatePartitionInfo(key, valueObject) {
+    const hash = this.simpleHash(key);
+    return {
+      hash,
+      suggested_partition: hash % 32,
+      distribution_hint: hash % 10
+    };
+  }
+  getTimeBucket(timestamp) {
+    const date = new Date(timestamp);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  }
+  getTimePartition(timestamp) {
+    const date = new Date(timestamp);
+    return `${date.getHours()}`;
+  }
+  extractBusinessContext(valueObject) {
+    if (!valueObject)
+      return {};
+    const context = {};
+    if (valueObject.type)
+      context.record_type = valueObject.type;
+    if (valueObject.category)
+      context.category = valueObject.category;
+    if (valueObject.priority)
+      context.priority = valueObject.priority;
+    return context;
+  }
+  calculateTenantShard(valueObject) {
+    const tenantId = this.extractTenantId(valueObject, null);
+    if (!tenantId)
+      return 0;
+    return this.simpleHash(tenantId) % 8;
+  }
+  simpleHash(str) {
+    let hash = 0;
+    if (str.length === 0)
+      return hash;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  }
+  generateUUID() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == "x" ? r : r & 3 | 8;
+      return v.toString(16);
+    });
+  }
+};
+
+// src/templates/index.ts
+var commonTransform = new CommonTransform();
+var valueTransform = new ValueTransform();
+var keyTransform = new KeyTransform();
+var topicTransform = new TopicTransform();
+var valueSchemaTransform = new ValueSchemaTransform();
+var keySchemaTransform = new KeySchemaTransform();
+function initializeTransforms() {
+  return {
+    common: commonTransform,
+    value: valueTransform,
+    key: keyTransform,
+    topic: topicTransform,
+    valueSchema: valueSchemaTransform,
+    keySchema: keySchemaTransform
+  };
+}
 
 // Shared utilities (bundled into each transform for self-containment)
 
@@ -9361,41 +10192,16 @@ function safeStringify(obj) {
     }
 }
 
-// Async enrichment transform
+// Async enrichment transform using template structure
 async function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     // Enrich (Async): Enrich records with external API calls
     try {
-        var transformer = new OrderTransformer();
-        var transformedOrder = transformer.transform(valueObject);
+        var transformer = valueTransform;
+        var transformedRecord = await transformer.transformAsync(valueObject, keyObject, topic, timestamp);
         
-        // Example async enrichment with REST API
-        if (transformedOrder.customer && transformedOrder.customer._id) {
-            // Simulate async API call (replace with actual fetch/axios call)
-            var enrichmentData = await simulateApiCall(transformedOrder.customer._id);
-            
-            // Merge enrichment data
-            transformedOrder.customer = Object.assign(transformedOrder.customer, enrichmentData);
-            transformedOrder.enrichment_timestamp = new Date().toISOString();
-        }
-        
-        return transformedOrder;
+        return transformedRecord;
     } catch (error) {
         console.error('Enrichment failed:', error);
         return valueObject; // Return original on error
     }
-}
-
-// Simulate async API call
-async function simulateApiCall(customerId) {
-    // In real implementation, replace with actual API call
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve({
-                credit_score: 750,
-                loyalty_tier: 'gold',
-                last_order_date: '2024-08-15T10:00:00Z',
-                enriched_at: new Date().toISOString()
-            });
-        }, 100);
-    });
 }

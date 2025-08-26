@@ -1,10 +1,16 @@
 /**
  * Tests for the build process and generated file structure
  * These tests ensure the customer can rely on the build output
+ * Works with both example-based and template-based structures
  */
 
 import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
+
+// Helper to detect project structure
+function detectProjectStructure(): 'template' | 'example' {
+    return existsSync('src/templates/index.ts') ? 'template' : 'example';
+}
 
 describe('Build Process and Generated Files', () => {
     
@@ -66,9 +72,16 @@ describe('Build Process and Generated Files', () => {
                     it(`should be self-contained in ${fileName}`, () => {
                         const filePath = join(process.cwd(), 'transforms', folder, fileName);
                         const content = readFileSync(filePath, 'utf8');
+                        const structure = detectProjectStructure();
                         
-                        // Should contain bundled dependencies
-                        expect(content).toContain('OrderTransformer');
+                        // Should contain bundled dependencies based on structure
+                        if (structure === 'example') {
+                            expect(content).toContain('OrderTransformer');
+                        } else {
+                            expect(content).toContain('CommonTransform');
+                            expect(content).toContain('ValueTransform');
+                        }
+                        
                         expect(content).toContain('moment'); // Should have moment.js bundled
                         
                         // Should contain utility functions
@@ -158,12 +171,19 @@ describe('Build Process and Generated Files', () => {
             it(`should contain multiple functions in ${filePath}`, () => {
                 const fullPath = join(process.cwd(), filePath);
                 const content = readFileSync(fullPath, 'utf8');
+                const structure = detectProjectStructure();
                 
                 // Should contain main transform function
                 expect(content).toContain('_streamkap_transform');
                 
-                // Should be self-contained
-                expect(content).toContain('OrderTransformer');
+                // Should be self-contained - check for appropriate classes based on structure
+                if (structure === 'example') {
+                    expect(content).toContain('OrderTransformer');
+                } else {
+                    expect(content).toContain('CommonTransform');
+                    expect(content).toContain('ValueTransform');
+                }
+                
                 expect(content).toContain('formatTimestamp');
             });
         });

@@ -44,6 +44,13 @@ const transforms = [
 async function buildTransforms() {
     console.log('🏗️  Building multiple Streamkap transform bundles...\n');
 
+    // Detect which structure we're using
+    const useTemplateStructure = fs.existsSync('src/templates/index.ts');
+    const entryPoint = useTemplateStructure ? 'src/templates/index.ts' : 'src/index.ts';
+    
+    console.log(`📂 Detected structure: ${useTemplateStructure ? 'Template-based' : 'Example-based'}`);
+    console.log(`📋 Entry point: ${entryPoint}\n`);
+
     // Create output directory structure
     const outputDir = 'transforms';
     if (fs.existsSync(outputDir)) {
@@ -54,7 +61,7 @@ async function buildTransforms() {
     // First build the main bundle
     console.log('📦 Building main TypeScript bundle...');
     try {
-        execSync('npx esbuild src/index.ts --bundle --platform=browser --target=es2015 --outfile=main.js', { stdio: 'inherit' });
+        execSync(`npx esbuild ${entryPoint} --bundle --platform=browser --target=es2015 --outfile=main.js`, { stdio: 'inherit' });
     } catch (error) {
         console.error('❌ Failed to build main bundle');
         process.exit(1);
@@ -100,7 +107,7 @@ async function buildTransforms() {
                     let transformCode = generateFileHeader(transform, funcType);
                     transformCode += mainCode + '\n\n';
                     transformCode += generateSharedUtilities() + '\n\n';
-                    transformCode += generateJavaScriptFunction(transform, funcType);
+                    transformCode += generateJavaScriptFunction(transform, funcType, useTemplateStructure);
                     
                     const outputPath = path.join(folderPath, fileName);
                     fs.writeFileSync(outputPath, transformCode);
@@ -116,7 +123,7 @@ async function buildTransforms() {
                 combinedCode += generateSharedUtilities() + '\n\n';
                 
                 for (const funcType of transform.functions) {
-                    combinedCode += generateJavaScriptFunction(transform, funcType) + '\n\n';
+                    combinedCode += generateJavaScriptFunction(transform, funcType, useTemplateStructure) + '\n\n';
                 }
                 
                 const combinedPath = path.join(folderPath, combinedFileName);
@@ -196,20 +203,78 @@ function validateFile(filePath) {
     }
 }
 
-function generateJavaScriptFunction(transform, funcType) {
+function generateJavaScriptFunction(transform, funcType, useTemplateStructure = false) {
     switch (funcType) {
         case 'value_transform':
-            return generateValueTransform(transform);
+            return generateValueTransform(transform, useTemplateStructure);
         case 'key_transform':
-            return generateKeyTransform(transform);
+            return generateKeyTransform(transform, useTemplateStructure);
         case 'topic_transform':
-            return generateTopicTransform(transform);
+            return generateTopicTransform(transform, useTemplateStructure);
         default:
             return `// TODO: Implement ${funcType} for ${transform.type}`;
     }
 }
 
-function generateValueTransform(transform) {
+function generateValueTransform(transform, useTemplateStructure = false) {
+    if (useTemplateStructure) {
+        // Template-based generation
+        switch (transform.type) {
+            case 'map_filter':
+                return `// Main transform function for map_filter
+function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
+    // Map/Filter: Transform and optionally filter records using template structure
+    var transformer = valueTransform;
+    var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
+    
+    return transformedRecord;
+}`;
+
+            case 'fan_out':
+                return `// Value transform for fan_out using template structure
+function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
+    // Fan Out: Transform the record that will be sent to multiple topics
+    var transformer = valueTransform;
+    var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
+    
+    return transformedRecord;
+}`;
+
+            case 'enrich_async':
+                return `// Async enrichment transform using template structure
+async function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
+    // Enrich (Async): Enrich records with external API calls
+    try {
+        var transformer = valueTransform;
+        var transformedRecord = await transformer.transformAsync(valueObject, keyObject, topic, timestamp);
+        
+        return transformedRecord;
+    } catch (error) {
+        console.error('Enrichment failed:', error);
+        return valueObject; // Return original on error
+    }
+}`;
+
+            case 'un_nesting':
+                return `// Un-nesting transform using template structure
+function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
+    // Un Nesting: Flatten nested objects/arrays
+    var transformer = valueTransform;
+    var transformedRecord = transformer.transformFlatten(valueObject, keyObject, topic, timestamp);
+    
+    return transformedRecord;
+}`;
+
+            default:
+                return `// Value transform for ${transform.type} using template structure
+function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
+    var transformer = valueTransform;
+    return transformer.transform(valueObject, keyObject, topic, timestamp);
+}`;
+        }
+    }
+    
+    // Original example-based generation
     switch (transform.type) {
         case 'map_filter':
             return `// Main transform function for map_filter
@@ -326,7 +391,17 @@ function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
     }
 }
 
-function generateKeyTransform(transform) {
+function generateKeyTransform(transform, useTemplateStructure = false) {
+    if (useTemplateStructure) {
+        return `// Key transform function using template structure
+function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
+    // Transform the record key using template-based logic
+    var transformer = keyTransform;
+    return transformer.transform(valueObject, keyObject, topic, timestamp);
+}`;
+    }
+    
+    // Original example-based generation
     return `// Key transform function
 function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
     // Transform the record key based on business logic
@@ -343,7 +418,17 @@ function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
 }`;
 }
 
-function generateTopicTransform(transform) {
+function generateTopicTransform(transform, useTemplateStructure = false) {
+    if (useTemplateStructure) {
+        return `// Topic transform function using template structure
+function _streamkap_transform_topic(valueObject, keyObject, topic, timestamp) {
+    // Fan Out: Route records to different topics using template-based logic
+    var transformer = topicTransform;
+    return transformer.transform(valueObject, keyObject, topic, timestamp);
+}`;
+    }
+    
+    // Original example-based generation
     return `// Topic transform function for fan-out routing
 function _streamkap_transform_topic(valueObject, keyObject, topic, timestamp) {
     // Fan Out: Route records to different topics based on business logic
