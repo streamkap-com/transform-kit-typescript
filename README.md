@@ -130,7 +130,7 @@ npm test
 
 ---
 
-# 🔄 Option 2: Existing TypeScript Project
+# Option 2: Existing TypeScript Project
 
 Add Streamkap bundler to your existing codebase in 3 steps:
 
@@ -236,9 +236,9 @@ npx esbuild src/my-transform.ts --bundle --outfile=my-transform.js
 
 ---
 
-# 📋 Common Reference
+# Common Reference
 
-## 🤔 Which File to Use?
+## Which File to Use?
 
 | Transform Type | File to Copy | Purpose |
 |----------------|--------------|---------|
@@ -271,7 +271,7 @@ transforms/
 
 Each file is **completely self-contained** with all npm dependencies bundled inside.
 
-## 🚀 Deploy to Streamkap
+## Deploy to Streamkap
 
 1. **Create your transform** in Streamkap Web App
 2. **Navigate to Implementation tab** 
@@ -290,7 +290,7 @@ Each file is **completely self-contained** with all npm dependencies bundled ins
 - **Copy-Paste Ready**: Files are designed for direct paste into Streamkap's code editor
 - **Function Signatures**: Generated code follows Streamkap's exact convention requirements
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 **Tests failing?**
 ```bash
