@@ -137,13 +137,11 @@ npm run test:un-nesting      # Build un-nesting, then test it
 1. **Create your transform** in Streamkap Web App
 2. **Navigate to Implementation tab** 
 3. **Copy entire contents** of your generated file:
-   - For value transforms: `valueTransform.js`
-   - For key transforms: `keyTransform.js`
-   - For topic transforms: `topicTransform.js`
+   - **Always required**: `valueTransform.js` 
+   - **Optional**: `keyTransform.js` (leave blank in Streamkap if no key changes needed)
+   - **Optional**: `topicTransform.js` (leave blank in Streamkap if no topic changes needed)
 4. **Paste into Streamkap's code editor** (replaces the default JavaScript)
 5. **Save and deploy** - your TypeScript code with all dependencies is now running!
-
-**Pro Tip**: The generated files are completely self-contained with all npm dependencies bundled in.
 
 📋 **Next Steps**: See [Common Reference](#common-reference) below for deployment instructions and file selection guide.
 
@@ -301,12 +299,16 @@ npx esbuild src/my-transform.ts --bundle --outfile=my-transform.js
 
 | Transform Type | File to Copy | Purpose |
 |----------------|--------------|---------|
-| **map_filter** | `valueTransform.js` | Transform and filter records |
-| **fan_out** | `valueTransform.js` + `topicTransform.js` | Route to multiple topics |
-| **enrich_async** | `valueTransform.js` | Enrich with external APIs |
-| **un_nesting** | `valueTransform.js` | Flatten nested objects |
+| **map_filter** | `valueTransform.js` (**required**) | Transform and filter records |
+|                | `keyTransform.js` (*optional*) | Leave blank in Streamkap if no key changes needed |
+| **fan_out** | `valueTransform.js` (**required**) | Transform records for routing |
+|             | `topicTransform.js` (*optional*) | Leave blank in Streamkap if no topic changes needed |
+| **enrich_async** | `valueTransform.js` (**required**) | Enrich with external APIs |
+| **un_nesting** | `valueTransform.js` (**required**) | Flatten nested objects |
 
-💡 **Most users need**: `valueTransform.js` (handles your main business logic)
+💡 **Key Points**: 
+- **`valueTransform.js`** is **always required**
+- **`keyTransform.js`** and **`topicTransform.js`** are **optional** - leave blank in Streamkap if not needed
 
 ## 📁 Generated Files Structure
 
@@ -333,6 +335,8 @@ Each file is **completely self-contained** with all npm dependencies bundled ins
 3. **Copy entire contents** of your generated file (see table above)
 4. **Paste into Streamkap's code editor** (replaces the default JavaScript)
 5. **Save and deploy** - your TypeScript code with all dependencies is now running!
+
+**Important**: Only paste the transforms you actually need - see [Which File to Use](#which-file-to-use) table above for details.
 
 ## 🛠️ Production Guidelines
 
