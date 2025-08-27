@@ -1,4 +1,4 @@
-// Selective test runner for Streamkap transforms
+// Streamkap selective test runner
 
 const fs = require('fs');
 const { execSync } = require('child_process');
@@ -25,7 +25,7 @@ function parseTestArgs() {
     return { requestedTypes, testAll, shouldBuild };
 }
 
-// Get available transforms based on generated files
+// Get available transforms
 function getAvailableTransforms() {
     const transformsDir = path.join(process.cwd(), 'transforms');
     if (!fs.existsSync(transformsDir)) {
@@ -37,7 +37,7 @@ function getAvailableTransforms() {
         .filter(dirent => dirent.isDirectory())
         .map(dirent => dirent.name);
 
-    // Map folder names to transform types
+    // Map folder names to types
     const folderToType = {
         'map-filter': 'map_filter',
         'fan-out': 'fan_out',

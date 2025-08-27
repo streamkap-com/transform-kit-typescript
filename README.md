@@ -156,17 +156,32 @@ Add Streamkap bundler to your existing codebase in 3 steps:
 
 ## 1. Copy Files
 ```bash
-# Copy bundler and templates
+# Copy bundler and transform files
 cp build-multiple.js your-project/
-mkdir -p your-project/src/templates/
-cp src/templates/*.ts your-project/src/templates/
+cp test-selective.js your-project/
+mkdir -p your-project/src/
+cp src/value_transform.ts your-project/src/
+cp src/key_transform.ts your-project/src/
+cp src/topic_transform.ts your-project/src/
+# Optionally copy the example interfaces and transformer as reference
+cp src/OrderTransformer.ts your-project/src/ 
+cp src/Customer.ts your-project/src/
+cp src/OrderType1.ts your-project/src/
+cp src/OrderType2.ts your-project/src/
+cp src/MergedOrder.ts your-project/src/
 ```
 
 ## 2. Update package.json
 ```json
 {
   "scripts": {
-    "bundle:streamkap": "node build-multiple.js"
+    "build": "node build-multiple.js --all",
+    "build:map-filter": "node build-multiple.js --map-filter",
+    "build:fan-out": "node build-multiple.js --fan-out",
+    "build:enrich-async": "node build-multiple.js --enrich-async",
+    "build:un-nesting": "node build-multiple.js --un-nesting",
+    "test": "node test-selective.js",
+    "test:map-filter": "npm run build:map-filter && node test-selective.js --map-filter"
   },
   "dependencies": {
     "lodash": "^4.17.21",
@@ -185,19 +200,32 @@ cp src/templates/*.ts your-project/src/templates/
 
 ## 3. Connect Your Logic
 
-Edit the template files to use your existing business logic:
+Create your own OrderTransformer or update the existing one:
 
 ```typescript
-// src/templates/commonTransform.ts
-import { YourService } from '../your-existing-logic';
+// src/YourTransformer.ts
+import { YourService } from './your-existing-logic';
 
-export class CommonTransform {
+export class YourTransformer {
     private yourService = new YourService();
     
-    public transformRecord(input: any): any {
+    public transform(input: any): any {
         // Use your existing business logic
         return this.yourService.processData(input);
     }
+}
+```
+
+Then update the transform files to use your transformer:
+
+```typescript
+// src/value_transform.ts
+import { YourTransformer } from "./YourTransformer";
+
+export function _streamkap_transform(valueObject: any, keyObject: any, topic: any, timestamp: any) {
+    var transformer = new YourTransformer();
+    var transformedRecord = transformer.transform(valueObject);
+    return transformedRecord;
 }
 ```
 

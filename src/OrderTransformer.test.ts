@@ -91,7 +91,7 @@ describe("OrderTransformer", () => {
             expect(result.location_id).toBe("loc-123");
             expect(result.order_type).toBe("OrderType2");
             expect(result.channel).toBe("rpos");
-            expect(result.customer.organization_id).toBe("org-789");
+            expect(result.customer!.organization_id).toBe("org-789");
             expect(result.organization_id).toBe("org-789"); // Gets it from customer for OrderType2
             
             expect(result.processed_at).toBeDefined();

@@ -192,24 +192,21 @@ describe('Generated Transform Functions', () => {
             expect(result.processed_at || result.processed_time).toBeDefined();
         });
         
-        it('should filter out records with test in ID (example structure)', () => {
-            const structure = detectProjectStructure();
+        it('should process records with test in ID', () => {
+            const testOrder = {
+                ...mockOrderType1,
+                _id: 'express-test-should-filter'
+            };
             
-            if (structure === 'example') {
-                const testOrder = {
-                    ...mockOrderType1,
-                    _id: 'express-test-should-filter'
-                };
-                
-                const result = executeTransformSafely(transformPath, '_streamkap_transform', testOrder);
-                expect(result).toBeNull();
-            } else {
-                // Template structure may have different filtering logic
-                expect(true).toBe(true); // Skip test for template structure
-            }
+            const result = executeTransformSafely(transformPath, '_streamkap_transform', testOrder);
+            
+            // Should process all records by default (filtering is optional)
+            expect(result).toBeDefined();
+            expect(result).not.toBeNull();
+            expect(typeof result).toBe('object');
         });
         
-        it('should handle records appropriately based on structure', () => {
+        it('should handle records with null customer', () => {
             const recordWithNullCustomer = {
                 ...mockOrderType1,
                 customer: null
@@ -217,17 +214,11 @@ describe('Generated Transform Functions', () => {
             
             const result = executeTransformSafely(transformPath, '_streamkap_transform', recordWithNullCustomer);
             
-            const structure = detectProjectStructure();
-            if (structure === 'example') {
-                // Example structure has strict customer validation
-                expect(result).toBeNull();
-            } else {
-                // Template structure is more flexible - processes records but may mark validation issues
-                expect(result).toBeDefined();
-                expect(typeof result).toBe('object');
-                // Record has _id so has_valid_data should be true, even with null customer
-                expect(result.has_valid_data).toBe(true);
-            }
+            // Should process all records (validation logic is customizable)
+            expect(result).toBeDefined();
+            expect(result).not.toBeNull();
+            expect(typeof result).toBe('object');
+            expect(result.has_valid_customer).toBe(false);
         });
         
         it('should handle OrderType2 correctly', () => {

@@ -15,4 +15,5 @@ export interface MergedOrder {
     processing_id: string; // UUID generated with uuid library
     has_valid_customer: boolean; // Validation using lodash
     field_count: number; // Count using lodash utilities
+    
 }
