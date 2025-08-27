@@ -41,138 +41,75 @@ const transforms = [
     }
 ];
 
+
+function removeModuleWrapper(transformCode) {
+    // Remove IIFE wrapper and clean up
+    transformCode = transformCode.replace(/^"use strict";\s*\n?/, '');
+    transformCode = transformCode.replace(/^\(\(\)\s*=>\s*\{\s*\n/, '');
+    transformCode = transformCode.replace(/\s*\}\)\(\);?\s*$/, '');
+    transformCode = transformCode.split('\n').map(line => line.replace(/^  /, '')).join('\n');
+    transformCode = transformCode.trim();
+    return transformCode;
+}
+
 async function buildTransforms() {
     console.log('🏗️  Building multiple Streamkap transform bundles...\n');
 
     // Create output directory structure
     const outputDir = 'transforms';
-    if (fs.existsSync(outputDir)) {
-        fs.rmSync(outputDir, { recursive: true, force: true });
+    const tmpDir = '.tmp.build';
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
     }
-    fs.mkdirSync(outputDir);
+    if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+    }
 
     // First build the main bundle
-    console.log('📦 Building main TypeScript bundle...');
-    try {
-        execSync('npx esbuild src/index.ts --bundle --platform=browser --target=es2015 --outfile=main.js', { stdio: 'inherit' });
-    } catch (error) {
-        console.error('❌ Failed to build main bundle');
-        process.exit(1);
-    }
-
-    // Read main.js and process it
-    let mainCode = fs.readFileSync('main.js', 'utf8');
-    
-    // Remove IIFE wrapper and clean up
-    mainCode = mainCode.replace(/^"use strict";\s*\n?/, '');
-    mainCode = mainCode.replace(/^\(\(\)\s*=>\s*\{\s*\n/, '');
-    mainCode = mainCode.replace(/\s*\}\)\(\);?\s*$/, '');
-    mainCode = mainCode.split('\n').map(line => line.replace(/^  /, '')).join('\n');
-    mainCode = mainCode.trim();
-
-    // Group transforms by folder
-    const folderGroups = {};
-    transforms.forEach(transform => {
-        if (!folderGroups[transform.folder]) {
-            folderGroups[transform.folder] = [];
-        }
-        folderGroups[transform.folder].push(transform);
-    });
-
-    // Generate each transform
-    for (const transform of transforms) {
-        const folderPath = path.join(outputDir, transform.folder);
-        if (!fs.existsSync(folderPath)) {
-            fs.mkdirSync(folderPath, { recursive: true });
-        }
-
-        console.log(`🔄 [${transform.type}] ${transform.language} - ${transform.description}`);
-        console.log(`   📁 ${transform.folder}/`);
-
-        if (transform.language === 'JAVASCRIPT') {
-            // Generate JavaScript transform files
-            if (transform.functions.length > 0) {
-                // Generate individual function files
-                for (const funcType of transform.functions) {
-                    const fileName = `${funcType}.js`;
-                    console.log(`   📄 Generating ${fileName}`);
-                    
-                    let transformCode = generateFileHeader(transform, funcType);
-                    transformCode += mainCode + '\n\n';
-                    transformCode += generateSharedUtilities() + '\n\n';
-                    transformCode += generateJavaScriptFunction(transform, funcType);
-                    
-                    const outputPath = path.join(folderPath, fileName);
-                    fs.writeFileSync(outputPath, transformCode);
-                    validateFile(outputPath);
-                }
-                
-                // Generate combined transform file
-                const combinedFileName = `${transform.name}.js`;
-                console.log(`   📄 Generating ${combinedFileName} (combined)`);
-                
-                let combinedCode = generateFileHeader(transform, 'combined');
-                combinedCode += mainCode + '\n\n';
-                combinedCode += generateSharedUtilities() + '\n\n';
-                
-                for (const funcType of transform.functions) {
-                    combinedCode += generateJavaScriptFunction(transform, funcType) + '\n\n';
-                }
-                
-                const combinedPath = path.join(folderPath, combinedFileName);
-                fs.writeFileSync(combinedPath, combinedCode);
-                validateFile(combinedPath);
-            }
-                
-        } else if (transform.language === 'SQL') {
-            // Generate SQL transform files
-            const fileName = `${transform.name}.sql`;
-            console.log(`   📄 Generating ${fileName}`);
-            
-            let sqlCode = generateSqlHeader(transform);
-            sqlCode += generateSqlQuery(transform);
-            
-            const outputPath = path.join(folderPath, fileName);
-            fs.writeFileSync(outputPath, sqlCode);
-            console.log(`   ✅ Generated successfully`);
-        }
-        
-        console.log('');
-    }
+    buildTransformFunction(outputDir, tmpDir, 'value_transform');
+    buildTransformFunction(outputDir, tmpDir, 'key_transform');
+    buildTransformFunction(outputDir, tmpDir, 'topic_transform');
 
     // Create README for generated folder
-    generateOutputReadme(outputDir, folderGroups);
-
-    // Clean up temporary build file
-    try {
-        fs.unlinkSync('main.js');
-    } catch (e) {
-        // Ignore if file doesn't exist
-    }
+    generateOutputReadme(outputDir);
 
     console.log('🎉 All transform bundles generated successfully!');
     console.log(`📁 Output directory: ${outputDir}/`);
-    
-    console.log('\n📋 Generated structure:');
-    Object.keys(folderGroups).forEach(folder => {
-        console.log(`  📁 ${folder}/`);
-        folderGroups[folder].forEach(t => {
-            console.log(`     • ${t.name}.js (${t.type})`);
-        });
-    });
+
+}
+
+function buildTransformFunction(outputDir, tmpDir, funcType) {
+
+    // Clean up previous temporary build file
+    try {
+        fs.unlinkSync(`${tmpDir}/${funcType}.js`);
+    } catch (e) {
+        // Ignore if file doesn't exist
+    }    
+
+    console.log(`📦 Building ${funcType} TypeScript bundle...`);
+    try {
+        execSync(`npx esbuild src/${funcType}.ts --bundle --platform=browser --target=es2015 --outfile=${tmpDir}/${funcType}.js`, { stdio: 'inherit' });
+    } catch (error) {
+        console.error(`❌ Failed to build ${funcType} bundle`);
+        process.exit(1);
+    }
+
+    // Read value_transform.js and process it
+    let transformCode = fs.readFileSync(`${tmpDir}/${funcType}.js`, 'utf8');
+    let fileName = `${outputDir}/${funcType}.js`;
+    console.log(`   📄 Generating ${fileName}`);
+    let code = generateFileHeader(funcType) + removeModuleWrapper(transformCode);
+    fs.writeFileSync(fileName, code);
+    console.log(`   ✅ Generated successfully`);
+
 }
 
 // Helper functions for new structure
-function generateFileHeader(transform, funcType) {
-    return `// Streamkap ${transform.type} Transform (${transform.language})
-// ${transform.description}
+function generateFileHeader(funcType) {
+    return `// Streamkap transforms
 // Function: ${funcType}
 // Generated on: ${new Date().toISOString()}
-// 
-// Implementation details:
-// - Transform type: ${transform.type}
-// - Language: ${transform.language}
-// - Function type: ${funcType}
 
 `;
 }
@@ -196,274 +133,10 @@ function validateFile(filePath) {
     }
 }
 
-function generateJavaScriptFunction(transform, funcType) {
-    switch (funcType) {
-        case 'value_transform':
-            return generateValueTransform(transform);
-        case 'key_transform':
-            return generateKeyTransform(transform);
-        case 'topic_transform':
-            return generateTopicTransform(transform);
-        default:
-            return `// TODO: Implement ${funcType} for ${transform.type}`;
-    }
-}
-
-function generateValueTransform(transform) {
-    switch (transform.type) {
-        case 'map_filter':
-            return `// Main transform function for map_filter
-function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Map/Filter: Transform and optionally filter records
-    
-    // Filter out invalid records
-    if (!valueObject || !valueObject.customer || !valueObject.customer.name) {
-        return null; // null = filter out this record
-    }
-    
-    // Filter test records
-    if (valueObject._id && valueObject._id.includes('test')) {
-        return null;
-    }
-    
-    // Apply transformation using our OrderTransformer
-    var transformer = new OrderTransformer();
-    var transformedRecord = transformer.transform(valueObject);
-    
-    return transformedRecord;
-}`;
-
-        case 'fan_out':
-            return `// Value transform for fan_out (transforms the record before routing)
-function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Fan Out: Transform the record that will be sent to multiple topics
-    var transformer = new OrderTransformer();
-    var transformedRecord = transformer.transform(valueObject);
-    
-    // Add routing metadata
-    transformedRecord.routing_info = {
-        source_topic: topic,
-        processed_timestamp: timestamp,
-        routing_rules_applied: true
-    };
-    
-    return transformedRecord;
-}`;
-
-        case 'enrich_async':
-            return `// Async enrichment transform
-async function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Enrich (Async): Enrich records with external API calls
-    try {
-        var transformer = new OrderTransformer();
-        var transformedOrder = transformer.transform(valueObject);
-        
-        // Example async enrichment with REST API
-        if (transformedOrder.customer && transformedOrder.customer._id) {
-            // Simulate async API call (replace with actual fetch/axios call)
-            var enrichmentData = await simulateApiCall(transformedOrder.customer._id);
-            
-            // Merge enrichment data
-            transformedOrder.customer = Object.assign(transformedOrder.customer, enrichmentData);
-            transformedOrder.enrichment_timestamp = new Date().toISOString();
-        }
-        
-        return transformedOrder;
-    } catch (error) {
-        console.error('Enrichment failed:', error);
-        return valueObject; // Return original on error
-    }
-}
-
-// Simulate async API call
-async function simulateApiCall(customerId) {
-    // In real implementation, replace with actual API call
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve({
-                credit_score: 750,
-                loyalty_tier: 'gold',
-                last_order_date: '2024-08-15T10:00:00Z',
-                enriched_at: new Date().toISOString()
-            });
-        }, 100);
-    });
-}`;
-
-        case 'un_nesting':
-            return `// Un-nesting transform to flatten nested structures
-function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Un Nesting: Flatten nested objects/arrays
-    if (!valueObject) return null;
-    
-    var transformer = new OrderTransformer();
-    var baseRecord = transformer.transform(valueObject);
-    
-    // Flatten customer object
-    if (baseRecord.customer) {
-        baseRecord.customer_id = baseRecord.customer._id;
-        baseRecord.customer_name = baseRecord.customer.name;
-        baseRecord.customer_organization_id = baseRecord.customer.organization_id;
-        baseRecord.customer_version = baseRecord.customer.version;
-        
-        // Remove nested customer object
-        delete baseRecord.customer;
-    }
-    
-    // Add flattening metadata
-    baseRecord.flattened_at = new Date().toISOString();
-    baseRecord.original_structure_preserved = false;
-    
-    return baseRecord;
-}`;
-
-        default:
-            return `// Value transform for ${transform.type}
-function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    var transformer = new OrderTransformer();
-    return transformer.transform(valueObject);
-}`;
-    }
-}
-
-function generateKeyTransform(transform) {
-    return `// Key transform function
-function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
-    // Transform the record key based on business logic
-    if (valueObject && valueObject.order_type === 'OrderType1') {
-        return 'express-' + keyObject;
-    } else if (valueObject && valueObject.order_type === 'OrderType2') {
-        return 'rpos-' + keyObject;
-    }
-    
-    // Add timestamp prefix for time-based partitioning
-    var moment = require('moment');
-    var datePrefix = moment(timestamp).format('YYYY-MM-DD');
-    return datePrefix + '-' + keyObject;
-}`;
-}
-
-function generateTopicTransform(transform) {
-    return `// Topic transform function for fan-out routing
-function _streamkap_transform_topic(valueObject, keyObject, topic, timestamp) {
-    // Fan Out: Route records to different topics based on business logic
-    var topics = [];
-    
-    // Primary routing based on channel
-    if (valueObject && valueObject.channel === 'express') {
-        topics.push('orders-express-processed');
-    } else if (valueObject && valueObject.channel === 'rpos') {
-        topics.push('orders-rpos-processed');
-    } else {
-        topics.push('orders-processed');
-    }
-    
-    // High-value orders get additional routing
-    if (valueObject && valueObject.order_number > 50000) {
-        topics.push('orders-high-value');
-    }
-    
-    // Error orders get special routing
-    if (valueObject && !valueObject.customer) {
-        topics.push('orders-errors');
-    }
-    
-    // Return array for fan-out or single topic for simple routing
-    return topics.length > 1 ? topics : topics[0];
-}`;
-}
-
-function generateSqlQuery(transform) {
-    switch (transform.type) {
-        case 'sql_join':
-            return `-- SQL Join Query for combining multiple topics
--- This query joins order data with customer data
-
-SELECT 
-    o.order_id,
-    o.order_number,
-    o.order_type,
-    o.channel,
-    o.location_id,
-    c.customer_name,
-    c.customer_email,
-    c.organization_id,
-    CURRENT_TIMESTAMP as processed_at
-FROM orders_topic o
-LEFT JOIN customers_topic c 
-    ON o.customer_id = c.customer_id
-WHERE o.order_type IN ('OrderType1', 'OrderType2')
-    AND c.customer_name IS NOT NULL;`;
-
-        case 'enrich':
-            return `-- SQL Enrich Query for lookup-based enrichment
--- This query enriches orders with customer organization details
-
-SELECT 
-    main.*,
-    lookup.org_name,
-    lookup.org_tier,
-    lookup.org_region,
-    CURRENT_TIMESTAMP as enriched_at
-FROM {main_table} main
-LEFT JOIN {lookup_table} lookup 
-    ON main.organization_id = lookup.organization_id
-WHERE main.customer_name IS NOT NULL;`;
-
-        default:
-            return `-- SQL Query for ${transform.type}
-SELECT * FROM {input_table} WHERE 1=1;`;
-    }
-}
-
-function generateSharedUtilities() {
-    return `// Shared utilities (bundled into each transform for self-containment)
-
-function formatTimestamp(timestamp) {
-    // Use bundled moment.js for date formatting
-    var moment = require('moment');
-    return moment(timestamp).format('YYYY-MM-DD HH:mm:ss');
-}
-
-function generateProcessingId() {
-    // Generate unique processing ID
-    return 'proc-' + Math.random().toString(36).substr(2, 9);
-}
-
-function validateOrderStructure(order) {
-    // Validate basic order structure
-    return order && 
-           typeof order._id === 'string' && 
-           typeof order.order_number === 'number' &&
-           order.customer && 
-           typeof order.customer.name === 'string';
-}
-
-function safeStringify(obj) {
-    // Safe JSON stringify with error handling
-    try {
-        return JSON.stringify(obj);
-    } catch (e) {
-        return '[Unable to stringify object]';
-    }
-}`;
-}
-
-function generateOutputReadme(outputDir, folderGroups) {
+function generateOutputReadme(outputDir) {
     let readmeContent = '# Generated Streamkap Transforms\n\n';
     readmeContent += 'This directory contains self-contained transform bundles for Streamkap.\n\n';
     readmeContent += 'Generated on: ' + new Date().toISOString() + '\n\n';
-    readmeContent += '## Folder Structure\n\n';
-    
-    Object.keys(folderGroups).forEach(folder => {
-        const transforms = folderGroups[folder];
-        readmeContent += '### 📁 ' + folder + '/\n\n';
-        transforms.forEach(t => {
-            readmeContent += '- **' + t.name + '.js** - `' + t.type + '`  \n';
-            readmeContent += '  ' + t.description + '\n';
-        });
-        readmeContent += '\n';
-    });
     
     readmeContent += '## Key Features\n\n';
     readmeContent += '- **Self-contained**: Each transform file includes all dependencies (moment.js bundled)\n';

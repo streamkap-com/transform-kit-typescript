@@ -1,12 +1,6 @@
-// Streamkap map_filter Transform (JAVASCRIPT)
-// Map/Filter transform - modify and filter records
-// Function: combined
-// Generated on: 2025-08-22T08:04:44.265Z
-// 
-// Implementation details:
-// - Transform type: map_filter
-// - Language: JAVASCRIPT
-// - Function type: combined
+// Streamkap transforms
+// Function: value_transform
+// Generated on: 2025-08-27T13:06:47.962Z
 
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -9327,73 +9321,9 @@ var OrderTransformer = class {
   }
 };
 
-// src/index.ts
-var transformer = new OrderTransformer();
-
-// Shared utilities (bundled into each transform for self-containment)
-
-function formatTimestamp(timestamp) {
-    // Use bundled moment.js for date formatting
-    var moment = require('moment');
-    return moment(timestamp).format('YYYY-MM-DD HH:mm:ss');
-}
-
-function generateProcessingId() {
-    // Generate unique processing ID
-    return 'proc-' + Math.random().toString(36).substr(2, 9);
-}
-
-function validateOrderStructure(order) {
-    // Validate basic order structure
-    return order && 
-           typeof order._id === 'string' && 
-           typeof order.order_number === 'number' &&
-           order.customer && 
-           typeof order.customer.name === 'string';
-}
-
-function safeStringify(obj) {
-    // Safe JSON stringify with error handling
-    try {
-        return JSON.stringify(obj);
-    } catch (e) {
-        return '[Unable to stringify object]';
-    }
-}
-
-// Main transform function for map_filter
+// src/value_transform.ts
 function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Map/Filter: Transform and optionally filter records
-    
-    // Filter out invalid records
-    if (!valueObject || !valueObject.customer || !valueObject.customer.name) {
-        return null; // null = filter out this record
-    }
-    
-    // Filter test records
-    if (valueObject._id && valueObject._id.includes('test')) {
-        return null;
-    }
-    
-    // Apply transformation using our OrderTransformer
-    var transformer = new OrderTransformer();
-    var transformedRecord = transformer.transform(valueObject);
-    
-    return transformedRecord;
+  var transformer = new OrderTransformer();
+  var transformedRecord = transformer.transform(valueObject);
+  return transformedRecord;
 }
-
-// Key transform function
-function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
-    // Transform the record key based on business logic
-    if (valueObject && valueObject.order_type === 'OrderType1') {
-        return 'express-' + keyObject;
-    } else if (valueObject && valueObject.order_type === 'OrderType2') {
-        return 'rpos-' + keyObject;
-    }
-    
-    // Add timestamp prefix for time-based partitioning
-    var moment = require('moment');
-    var datePrefix = moment(timestamp).format('YYYY-MM-DD');
-    return datePrefix + '-' + keyObject;
-}
-

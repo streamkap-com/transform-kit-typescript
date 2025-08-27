@@ -4,6 +4,21 @@ import { OrderType2 } from "./OrderType2";
 import { Customer } from "./Customer";
 import moment from "moment";
 
+const mockRecord = {
+    key: {
+
+    },
+    value: {
+
+    }, 
+    keySchema: {
+
+    }, 
+    keyValue: {
+        
+    }
+}
+
 describe("OrderTransformer", () => {
     let transformer: OrderTransformer;
     

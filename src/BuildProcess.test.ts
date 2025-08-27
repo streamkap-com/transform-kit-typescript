@@ -41,10 +41,10 @@ describe('Build Process and Generated Files', () => {
     
     describe('JavaScript Transform Files', () => {
         const jsTransformTypes = [
-            { folder: 'map-filter', files: ['value_transform.js', 'key_transform.js', 'mapFilterTransform.js'] },
-            { folder: 'fan-out', files: ['value_transform.js', 'topic_transform.js', 'fanOutTransform.js'] },
-            { folder: 'enrich-async', files: ['value_transform.js', 'enrichAsyncTransform.js'] },
-            { folder: 'un-nesting', files: ['value_transform.js', 'unNestingTransform.js'] }
+            { folder: 'map-filter', files: ['value_transform.js', 'key_transform.js'] },
+            { folder: 'fan-out', files: ['value_transform.js', 'topic_transform.js'] },
+            { folder: 'enrich-async', files: ['value_transform.js'] },
+            { folder: 'un-nesting', files: ['value_transform.js'] }
         ];
         
         jsTransformTypes.forEach(({ folder, files }) => {
@@ -143,29 +143,6 @@ describe('Build Process and Generated Files', () => {
             const content = readFileSync(filePath, 'utf8');
             
             expect(content).toContain('async function _streamkap_transform(valueObject, keyObject, topic, timestamp)');
-        });
-    });
-    
-    describe('Combined Transform Files', () => {
-        const combinedFiles = [
-            'transforms/map-filter/mapFilterTransform.js',
-            'transforms/fan-out/fanOutTransform.js',
-            'transforms/enrich-async/enrichAsyncTransform.js',
-            'transforms/un-nesting/unNestingTransform.js'
-        ];
-        
-        combinedFiles.forEach(filePath => {
-            it(`should contain multiple functions in ${filePath}`, () => {
-                const fullPath = join(process.cwd(), filePath);
-                const content = readFileSync(fullPath, 'utf8');
-                
-                // Should contain main transform function
-                expect(content).toContain('_streamkap_transform');
-                
-                // Should be self-contained
-                expect(content).toContain('OrderTransformer');
-                expect(content).toContain('formatTimestamp');
-            });
         });
     });
     

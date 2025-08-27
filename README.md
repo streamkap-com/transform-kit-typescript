@@ -104,9 +104,9 @@ npm test
 1. **Create your transform** in Streamkap Web App
 2. **Navigate to Implementation tab** 
 3. **Copy entire contents** of your generated file:
-   - For value transforms: `value_transform.js`
-   - For key transforms: `key_transform.js`
-   - For topic transforms: `topic_transform.js`
+   - For value transforms: `valueTransform.js`
+   - For key transforms: `keyTransform.js`
+   - For topic transforms: `topicTransform.js`
 4. **Paste into Streamkap's code editor** (replaces the default JavaScript)
 5. **Save and deploy** - your TypeScript code with all dependencies is now running!
 

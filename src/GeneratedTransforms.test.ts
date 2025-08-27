@@ -305,29 +305,6 @@ describe('Generated Transform Functions', () => {
         });
     });
     
-    describe('Combined Transform Files', () => {
-        it('should load combined map-filter transform without errors', () => {
-            const transformPath = join(process.cwd(), 'transforms', 'map-filter', 'mapFilterTransform.js');
-            const transformCode = readFileSync(transformPath, 'utf8');
-            
-            // Should contain both functions
-            expect(transformCode).toContain('_streamkap_transform');
-            expect(transformCode).toContain('_streamkap_transform_key');
-            
-            // Should not throw syntax errors
-            expect(() => new Function(transformCode)).not.toThrow();
-        });
-        
-        it('should load combined fan-out transform without errors', () => {
-            const transformPath = join(process.cwd(), 'transforms', 'fan-out', 'fanOutTransform.js');
-            const transformCode = readFileSync(transformPath, 'utf8');
-            
-            expect(transformCode).toContain('_streamkap_transform');
-            expect(transformCode).toContain('_streamkap_transform_topic');
-            expect(() => new Function(transformCode)).not.toThrow();
-        });
-    });
-    
     describe('Shared Utilities', () => {
         let utils: any;
         

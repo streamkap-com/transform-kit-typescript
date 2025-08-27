@@ -2,29 +2,7 @@
 
 This directory contains self-contained transform bundles for Streamkap.
 
-Generated on: 2025-08-22T08:04:44.269Z
-
-## Folder Structure
-
-### 📁 map-filter/
-
-- **mapFilterTransform.js** - `map_filter`  
-  Map/Filter transform - modify and filter records
-
-### 📁 fan-out/
-
-- **fanOutTransform.js** - `fan_out`  
-  Fan Out - route records to multiple topics
-
-### 📁 enrich-async/
-
-- **enrichAsyncTransform.js** - `enrich_async`  
-  Async Enrich - enrich records with REST API calls
-
-### 📁 un-nesting/
-
-- **unNestingTransform.js** - `un_nesting`  
-  Un Nesting - flatten nested objects/arrays
+Generated on: 2025-08-27T13:06:48.917Z
 
 ## Key Features
 
