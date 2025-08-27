@@ -159,7 +159,6 @@ describe('Build Process and Generated Files', () => {
         });
     });
     
-    // Combined transform files are no longer generated
     
     describe('Dependencies and Self-containment', () => {
         it('should not have external requires in generated files', () => {

@@ -1,11 +1,28 @@
-// build-multiple.js
-// This script generates multiple transform bundle outputs for Streamkap
+// Streamkap transform bundler with selective building support
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// Transform types aligned with actual Streamkap implementation
+function parseArgs() {
+    const args = process.argv.slice(2);
+    const requestedTypes = new Set();
+    let buildAll = false;
+
+    if (args.length === 0 || args.includes('--all')) {
+        buildAll = true;
+    } else {
+        for (const arg of args) {
+            if (arg.startsWith('--')) {
+                const type = arg.substring(2).replace('-', '_');
+                requestedTypes.add(type);
+            }
+        }
+    }
+
+    return { requestedTypes, buildAll };
+}
+
 const transforms = [
     {
         name: 'mapFilterTransform',
@@ -42,23 +59,38 @@ const transforms = [
 ];
 
 async function buildTransforms() {
-    console.log('🏗️  Building multiple Streamkap transform bundles...\n');
+    const { requestedTypes, buildAll } = parseArgs();
+    
+    // Filter transforms based on arguments
+    let transformsToBuild = transforms;
+    if (!buildAll) {
+        transformsToBuild = transforms.filter(t => requestedTypes.has(t.type));
+        
+        if (transformsToBuild.length === 0) {
+            console.log('❌ No valid transform types specified.');
+            console.log('Available types: --map-filter, --fan-out, --enrich-async, --un-nesting, --all');
+            process.exit(1);
+        }
+    }
 
-    // Detect which structure we're using
+    console.log(`🏗️  Building ${buildAll ? 'all' : 'selected'} Streamkap transform bundles...\n`);
+    
+    if (!buildAll) {
+        console.log(`📋 Building transforms: ${transformsToBuild.map(t => t.type).join(', ')}\n`);
+    }
+
     const useTemplateStructure = fs.existsSync('src/templates/index.ts');
     const entryPoint = useTemplateStructure ? 'src/templates/index.ts' : 'src/value_transform.ts';
     
     console.log(`📂 Detected structure: ${useTemplateStructure ? 'Template-based' : 'Example-based'}`);
     console.log(`📋 Entry point: ${entryPoint}\n`);
 
-    // Create output directory structure
     const outputDir = 'transforms';
     if (fs.existsSync(outputDir)) {
         fs.rmSync(outputDir, { recursive: true, force: true });
     }
     fs.mkdirSync(outputDir);
 
-    // First build the main bundle using globalName to avoid IIFE wrapper issues
     console.log('📦 Building main TypeScript bundle...');
     try {
         execSync(`npx esbuild ${entryPoint} --bundle --platform=browser --target=es2015 --outfile=main.js --global-name=StreamkapTransforms --format=iife`, { stdio: 'inherit' });
@@ -67,19 +99,17 @@ async function buildTransforms() {
         process.exit(1);
     }
 
-    // Read main.js without brittle post-processing
     let mainCode = fs.readFileSync('main.js', 'utf8');
 
-    // Group transforms by folder
     const folderGroups = {};
-    transforms.forEach(transform => {
+    transformsToBuild.forEach(transform => {
         if (!folderGroups[transform.folder]) {
             folderGroups[transform.folder] = [];
         }
         folderGroups[transform.folder].push(transform);
     });
 
-    for (const transform of transforms) {
+    for (const transform of transformsToBuild) {
         const folderPath = path.join(outputDir, transform.folder);
         if (!fs.existsSync(folderPath)) {
             fs.mkdirSync(folderPath, { recursive: true });
@@ -127,7 +157,7 @@ async function buildTransforms() {
     try {
         fs.unlinkSync('main.js');
     } catch (e) {
-        // Ignore if file doesn't exist
+        // File doesn't exist
     }
 
     console.log('🎉 All transform bundles generated successfully!');
@@ -144,7 +174,6 @@ async function buildTransforms() {
     });
 }
 
-// Helper functions for new structure
 function generateFileHeader(transform, funcType) {
     return `// Streamkap ${transform.type} Transform (${transform.language})
 // ${transform.description}

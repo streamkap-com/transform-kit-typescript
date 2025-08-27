@@ -27,7 +27,7 @@ Example of **cleaning and unifying multiple semi-structured data entities into a
 **For New Project**: Clone this repo and customize
 ```bash
 git clone https://github.com/streamkap-com/transform-kit-typescript.git && cd transform-kit-typescript
-npm install && npm run build && npm test
+npm install && npm test  # Builds all transforms and runs all tests
 ```
 
 **For Existing Project**: [See integration guide below](#option-2-existing-typescript-project)
@@ -105,11 +105,31 @@ npm install moment lodash uuid
 ### 4. Build & Test
 
 ```bash
-# IMPORTANT: Build first (tests depend on generated files)
+# Build all transforms
 npm run build
 
-# Then run tests to ensure everything works
-npm test
+# OR build specific transform types
+npm run build:map-filter     # Only map/filter transforms
+npm run build:fan-out        # Only fan-out transforms  
+npm run build:enrich-async   # Only async enrichment transforms
+npm run build:un-nesting     # Only un-nesting transforms
+
+# You can also use the build script directly
+node build-multiple.js --map-filter --fan-out  # Build multiple specific types
+node build-multiple.js --all                   # Build all transforms
+
+# Run tests
+npm test                     # Build all transforms, then test all
+npm test -- --map-filter     # Test only map/filter (uses existing builds)
+npm test -- --fan-out        # Test only fan-out (uses existing builds)
+npm test -- --enrich-async   # Test only async enrichment (uses existing builds)
+npm test -- --un-nesting     # Test only un-nesting (uses existing builds)
+
+# OR use specific test commands (builds first)
+npm run test:map-filter      # Build map/filter, then test it
+npm run test:fan-out         # Build fan-out, then test it
+npm run test:enrich-async    # Build enrich-async, then test it  
+npm run test:un-nesting      # Build un-nesting, then test it
 ```
 
 ### 5. Deploy to Streamkap
@@ -183,7 +203,18 @@ export class CommonTransform {
 
 ## 4. Build & Deploy
 ```bash
-npm install && npm run bundle:streamkap
+# Install dependencies
+npm install
+
+# Build all transforms
+npm run build
+
+# OR build specific transforms only
+npm run build:map-filter                            # Build specific type
+node build-multiple.js --map-filter --enrich-async  # Build multiple types
+node build-multiple.js --all                        # Build all transforms
+
+# Check generated files
 ls transforms/  # Copy these .js files to Streamkap
 ```
 
@@ -298,6 +329,22 @@ npm test -- --verbose
 ```bash
 npm install
 npm run build 2>&1 | grep -i error
+```
+
+**Only need specific transforms?**
+```bash
+# Build individual transform types for faster development
+npm run build:map-filter      # Only builds map/filter transforms
+npm run test:enrich-async     # Builds and tests async enrichment
+
+# Test without building (uses existing builds)
+npm test -- --map-filter     # Test only map/filter transforms
+npm test -- --fan-out --un-nesting  # Test multiple specific types
+
+# Build multiple specific types
+node build-multiple.js --fan-out --un-nesting
+
+# Available types: --map-filter, --fan-out, --enrich-async, --un-nesting, --all
 ```
 
 **Streamkap deployment errors?**

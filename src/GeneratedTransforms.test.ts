@@ -6,7 +6,7 @@
 
 import { readFileSync, existsSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
-import { execSync, execFileSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { OrderType1 } from './OrderType1';
 import { OrderType2 } from './OrderType2';
 import { Customer } from './Customer';
@@ -164,14 +164,6 @@ try {
 
 describe('Generated Transform Functions', () => {
     
-    beforeAll(() => {
-        // Ensure transforms are built before running tests
-        try {
-            execSync('npm run build', { stdio: 'inherit' });
-        } catch (error) {
-            console.warn('Build failed, but continuing with existing transforms...');
-        }
-    });
 
     describe('Project Structure Detection', () => {
         it('should detect the correct project structure', () => {
