@@ -181,7 +181,7 @@ describe('Generated Transform Functions', () => {
     });
     
     describe('Map/Filter Value Transform', () => {
-        const transformPath = join(process.cwd(), 'transforms', 'map-filter', 'value_transform.js');
+        const transformPath = join(process.cwd(), 'transforms', 'map-filter', 'valueTransform.js');
         
         beforeAll(() => {
             expect(existsSync(transformPath)).toBe(true);
@@ -248,7 +248,7 @@ describe('Generated Transform Functions', () => {
     });
     
     describe('Map/Filter Key Transform', () => {
-        const transformPath = join(process.cwd(), 'transforms', 'map-filter', 'key_transform.js');
+        const transformPath = join(process.cwd(), 'transforms', 'map-filter', 'keyTransform.js');
         
         beforeAll(() => {
             expect(existsSync(transformPath)).toBe(true);
@@ -274,7 +274,7 @@ describe('Generated Transform Functions', () => {
     });
     
     describe('Fan-Out Topic Transform', () => {
-        const transformPath = join(process.cwd(), 'transforms', 'fan-out', 'topic_transform.js');
+        const transformPath = join(process.cwd(), 'transforms', 'fan-out', 'topicTransform.js');
         
         beforeAll(() => {
             expect(existsSync(transformPath)).toBe(true);
@@ -309,7 +309,7 @@ describe('Generated Transform Functions', () => {
     });
     
     describe('Enrich Async Transform', () => {
-        const transformPath = join(process.cwd(), 'transforms', 'enrich-async', 'value_transform.js');
+        const transformPath = join(process.cwd(), 'transforms', 'enrich-async', 'valueTransform.js');
         
         beforeAll(() => {
             expect(existsSync(transformPath)).toBe(true);
@@ -325,7 +325,7 @@ describe('Generated Transform Functions', () => {
     });
     
     describe('Un-nesting Transform', () => {
-        const transformPath = join(process.cwd(), 'transforms', 'un-nesting', 'value_transform.js');
+        const transformPath = join(process.cwd(), 'transforms', 'un-nesting', 'valueTransform.js');
         
         beforeAll(() => {
             expect(existsSync(transformPath)).toBe(true);
@@ -360,7 +360,7 @@ describe('Generated Transform Functions', () => {
         });
         
         it('should have self-contained transform files', () => {
-            const valueTransformPath = join(process.cwd(), 'transforms', 'map-filter', 'value_transform.js');
+            const valueTransformPath = join(process.cwd(), 'transforms', 'map-filter', 'valueTransform.js');
             const content = readFileSync(valueTransformPath, 'utf8');
             
             // Should contain bundled dependencies

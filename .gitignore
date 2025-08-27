@@ -43,6 +43,7 @@ jspm_packages/
 *.log
 .DS_Store
 main.js
+.tmp.build
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/

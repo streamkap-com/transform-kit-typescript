@@ -117,9 +117,9 @@ npm test
 1. **Create your transform** in Streamkap Web App
 2. **Navigate to Implementation tab** 
 3. **Copy entire contents** of your generated file:
-   - For value transforms: `value_transform.js`
-   - For key transforms: `key_transform.js`
-   - For topic transforms: `topic_transform.js`
+   - For value transforms: `valueTransform.js`
+   - For key transforms: `keyTransform.js`
+   - For topic transforms: `topicTransform.js`
 4. **Paste into Streamkap's code editor** (replaces the default JavaScript)
 5. **Save and deploy** - your TypeScript code with all dependencies is now running!
 
@@ -242,31 +242,27 @@ npx esbuild src/my-transform.ts --bundle --outfile=my-transform.js
 
 | Transform Type | File to Copy | Purpose |
 |----------------|--------------|---------|
-| **map_filter** | `value_transform.js` | Transform and filter records |
-| **fan_out** | `value_transform.js` + `topic_transform.js` | Route to multiple topics |
-| **enrich_async** | `value_transform.js` | Enrich with external APIs |
-| **un_nesting** | `value_transform.js` | Flatten nested objects |
+| **map_filter** | `valueTransform.js` | Transform and filter records |
+| **fan_out** | `valueTransform.js` + `topicTransform.js` | Route to multiple topics |
+| **enrich_async** | `valueTransform.js` | Enrich with external APIs |
+| **un_nesting** | `valueTransform.js` | Flatten nested objects |
 
-💡 **Most users need**: `value_transform.js` (handles your main business logic)
+💡 **Most users need**: `valueTransform.js` (handles your main business logic)
 
 ## 📁 Generated Files Structure
 
 ```
 transforms/
 ├── map-filter/
-│   ├── value_transform.js
-│   ├── key_transform.js
-│   └── mapFilterTransform.js
+│   ├── valueTransform.js
+│   └── keyTransform.js
 ├── fan-out/
-│   ├── value_transform.js
-│   ├── topic_transform.js
-│   └── fanOutTransform.js
+│   ├── valueTransform.js
+│   └── topicTransform.js
 ├── enrich-async/
-│   ├── value_transform.js
-│   └── enrichAsyncTransform.js
+│   └── valueTransform.js
 └── un-nesting/
-    ├── value_transform.js
-    └── unNestingTransform.js
+    └── valueTransform.js
 ```
 
 Each file is **completely self-contained** with all npm dependencies bundled inside.

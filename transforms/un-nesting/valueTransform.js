@@ -1,12 +1,12 @@
-// Streamkap map_filter Transform (JAVASCRIPT)
-// Map/Filter transform - modify and filter records
-// Function: value_transform
-// Generated on: 2025-08-26T11:55:34.959Z
+// Streamkap un_nesting Transform (JAVASCRIPT)
+// Un Nesting - flatten nested objects/arrays
+// Function: valueTransform
+// Generated on: 2025-08-27T13:33:35.865Z
 // 
 // Implementation details:
-// - Transform type: map_filter
+// - Transform type: un_nesting
 // - Language: JAVASCRIPT
-// - Function type: value_transform
+// - Function type: valueTransform
 
 var StreamkapTransforms = (() => {
   var __create = Object.create;
@@ -10529,17 +10529,17 @@ function safeStringify(obj) {
     }
 }
 
-// Main transform function for map_filter
+// Un-nesting transform using template structure
 function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Map/Filter: Transform and optionally filter records using template structure
+    // Un Nesting: Flatten nested objects/arrays
     try {
         var ValueTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.ValueTransform) || 
                                   (typeof valueTransform !== 'undefined' ? valueTransform : ValueTransform);
         var transformer = typeof ValueTransformClass === 'function' ? new ValueTransformClass() : ValueTransformClass;
-        var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
+        var transformedRecord = transformer.transformFlatten(valueObject, keyObject, topic, timestamp);
         return transformedRecord;
     } catch (error) {
-        console.error('Transform failed:', error);
-        return null; // Filter out on error for map_filter
+        console.error('Un-nesting failed:', error);
+        return valueObject; // Return original on error for un_nesting
     }
 }

@@ -1,12 +1,12 @@
-// Streamkap un_nesting Transform (JAVASCRIPT)
-// Un Nesting - flatten nested objects/arrays
-// Function: combined
-// Generated on: 2025-08-26T11:55:34.964Z
+// Streamkap map_filter Transform (JAVASCRIPT)
+// Map/Filter transform - modify and filter records
+// Function: keyTransform
+// Generated on: 2025-08-27T13:33:35.862Z
 // 
 // Implementation details:
-// - Transform type: un_nesting
+// - Transform type: map_filter
 // - Language: JAVASCRIPT
-// - Function type: combined
+// - Function type: keyTransform
 
 var StreamkapTransforms = (() => {
   var __create = Object.create;
@@ -10529,18 +10529,11 @@ function safeStringify(obj) {
     }
 }
 
-// Un-nesting transform using template structure
-function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Un Nesting: Flatten nested objects/arrays
-    try {
-        var ValueTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.ValueTransform) || 
-                                  (typeof valueTransform !== 'undefined' ? valueTransform : ValueTransform);
-        var transformer = typeof ValueTransformClass === 'function' ? new ValueTransformClass() : ValueTransformClass;
-        var transformedRecord = transformer.transformFlatten(valueObject, keyObject, topic, timestamp);
-        return transformedRecord;
-    } catch (error) {
-        console.error('Un-nesting failed:', error);
-        return valueObject; // Return original on error for un_nesting
-    }
+// Key transform function using template structure
+function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
+    // Transform the record key using template-based logic
+    var KeyTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.KeyTransform) || 
+                              (typeof keyTransform !== 'undefined' ? keyTransform : KeyTransform);
+    var transformer = typeof KeyTransformClass === 'function' ? new KeyTransformClass() : KeyTransformClass;
+    return transformer.transform(valueObject, keyObject, topic, timestamp);
 }
-

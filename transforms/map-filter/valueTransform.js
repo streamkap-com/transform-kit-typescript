@@ -1,12 +1,12 @@
 // Streamkap map_filter Transform (JAVASCRIPT)
 // Map/Filter transform - modify and filter records
-// Function: combined
-// Generated on: 2025-08-26T11:55:34.961Z
+// Function: valueTransform
+// Generated on: 2025-08-27T13:33:35.861Z
 // 
 // Implementation details:
 // - Transform type: map_filter
 // - Language: JAVASCRIPT
-// - Function type: combined
+// - Function type: valueTransform
 
 var StreamkapTransforms = (() => {
   var __create = Object.create;
@@ -10543,13 +10543,3 @@ function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
         return null; // Filter out on error for map_filter
     }
 }
-
-// Key transform function using template structure
-function _streamkap_transform_key(valueObject, keyObject, topic, timestamp) {
-    // Transform the record key using template-based logic
-    var KeyTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.KeyTransform) || 
-                              (typeof keyTransform !== 'undefined' ? keyTransform : KeyTransform);
-    var transformer = typeof KeyTransformClass === 'function' ? new KeyTransformClass() : KeyTransformClass;
-    return transformer.transform(valueObject, keyObject, topic, timestamp);
-}
-

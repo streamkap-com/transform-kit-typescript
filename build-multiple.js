@@ -12,7 +12,7 @@ const transforms = [
         type: 'map_filter',
         language: 'JAVASCRIPT',
         description: 'Map/Filter transform - modify and filter records',
-        functions: ['value_transform', 'key_transform'],
+        functions: ['valueTransform', 'keyTransform'],
         folder: 'map-filter'
     },
     {
@@ -20,7 +20,7 @@ const transforms = [
         type: 'fan_out',
         language: 'JAVASCRIPT',
         description: 'Fan Out - route records to multiple topics',
-        functions: ['value_transform', 'topic_transform'],
+        functions: ['valueTransform', 'topicTransform'],
         folder: 'fan-out'
     },
     {
@@ -28,7 +28,7 @@ const transforms = [
         type: 'enrich_async',
         language: 'JAVASCRIPT',
         description: 'Async Enrich - enrich records with REST API calls',
-        functions: ['value_transform'],
+        functions: ['valueTransform'],
         folder: 'enrich-async'
     },
     {
@@ -36,7 +36,7 @@ const transforms = [
         type: 'un_nesting',
         language: 'JAVASCRIPT',
         description: 'Un Nesting - flatten nested objects/arrays',
-        functions: ['value_transform'],
+        functions: ['valueTransform'],
         folder: 'un-nesting'
     }
 ];
@@ -46,7 +46,7 @@ async function buildTransforms() {
 
     // Detect which structure we're using
     const useTemplateStructure = fs.existsSync('src/templates/index.ts');
-    const entryPoint = useTemplateStructure ? 'src/templates/index.ts' : 'src/index.ts';
+    const entryPoint = useTemplateStructure ? 'src/templates/index.ts' : 'src/value_transform.ts';
     
     console.log(`📂 Detected structure: ${useTemplateStructure ? 'Template-based' : 'Example-based'}`);
     console.log(`📋 Entry point: ${entryPoint}\n`);
@@ -103,21 +103,6 @@ async function buildTransforms() {
                     fs.writeFileSync(outputPath, transformCode);
                     validateFile(outputPath);
                 }
-                
-                const combinedFileName = `${transform.name}.js`;
-                console.log(`   📄 Generating ${combinedFileName} (combined)`);
-                
-                let combinedCode = generateFileHeader(transform, 'combined');
-                combinedCode += mainCode + '\n\n';
-                combinedCode += generateSharedUtilities() + '\n\n';
-                
-                for (const funcType of transform.functions) {
-                    combinedCode += generateJavaScriptFunction(transform, funcType, useTemplateStructure) + '\n\n';
-                }
-                
-                const combinedPath = path.join(folderPath, combinedFileName);
-                fs.writeFileSync(combinedPath, combinedCode);
-                validateFile(combinedPath);
             }
                 
         } else if (transform.language === 'SQL') {
@@ -152,7 +137,9 @@ async function buildTransforms() {
     Object.keys(folderGroups).forEach(folder => {
         console.log(`  📁 ${folder}/`);
         folderGroups[folder].forEach(t => {
-            console.log(`     • ${t.name}.js (${t.type})`);
+            t.functions.forEach(func => {
+                console.log(`     • ${func}.js (${t.type})`);
+            });
         });
     });
 }
@@ -193,11 +180,11 @@ function validateFile(filePath) {
 
 function generateJavaScriptFunction(transform, funcType, useTemplateStructure = false) {
     switch (funcType) {
-        case 'value_transform':
+        case 'valueTransform':
             return generateValueTransform(transform, useTemplateStructure);
-        case 'key_transform':
+        case 'keyTransform':
             return generateKeyTransform(transform, useTemplateStructure);
-        case 'topic_transform':
+        case 'topicTransform':
             return generateTopicTransform(transform, useTemplateStructure);
         default:
             return `// TODO: Implement ${funcType} for ${transform.type}`;

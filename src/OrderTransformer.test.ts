@@ -11,6 +11,13 @@ describe("OrderTransformer", () => {
         transformer = new OrderTransformer();
     });
 
+    const mockRecord = {
+        key: {},
+        value: {}, 
+        keySchema: {}, 
+        keyValue: {}
+    };
+
     const mockCustomer: Customer = {
         version: "0.1.4",
         _id: "customer-123",

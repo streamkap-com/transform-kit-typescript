@@ -1,12 +1,12 @@
-// Streamkap enrich_async Transform (JAVASCRIPT)
-// Async Enrich - enrich records with REST API calls
-// Function: value_transform
-// Generated on: 2025-08-26T11:55:34.963Z
+// Streamkap fan_out Transform (JAVASCRIPT)
+// Fan Out - route records to multiple topics
+// Function: valueTransform
+// Generated on: 2025-08-27T13:33:35.863Z
 // 
 // Implementation details:
-// - Transform type: enrich_async
+// - Transform type: fan_out
 // - Language: JAVASCRIPT
-// - Function type: value_transform
+// - Function type: valueTransform
 
 var StreamkapTransforms = (() => {
   var __create = Object.create;
@@ -10529,18 +10529,17 @@ function safeStringify(obj) {
     }
 }
 
-// Async enrichment transform using template structure
-async function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Enrich (Async): Enrich records with external API calls
+// Value transform for fan_out using template structure
+function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
+    // Fan Out: Transform the record that will be sent to multiple topics
     try {
         var ValueTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.ValueTransform) || 
                                   (typeof valueTransform !== 'undefined' ? valueTransform : ValueTransform);
         var transformer = typeof ValueTransformClass === 'function' ? new ValueTransformClass() : ValueTransformClass;
-        var transformedRecord = await transformer.transformAsync(valueObject, keyObject, topic, timestamp);
-        
+        var transformedRecord = transformer.transform(valueObject, keyObject, topic, timestamp);
         return transformedRecord;
     } catch (error) {
-        console.error('Enrichment failed:', error);
-        return valueObject; // Return original on error
+        console.error('Transform failed:', error);
+        return valueObject; // Return original on error for fan_out
     }
 }

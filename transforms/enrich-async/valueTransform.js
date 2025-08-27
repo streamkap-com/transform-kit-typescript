@@ -1,12 +1,12 @@
-// Streamkap fan_out Transform (JAVASCRIPT)
-// Fan Out - route records to multiple topics
-// Function: topic_transform
-// Generated on: 2025-08-26T11:55:34.962Z
+// Streamkap enrich_async Transform (JAVASCRIPT)
+// Async Enrich - enrich records with REST API calls
+// Function: valueTransform
+// Generated on: 2025-08-27T13:33:35.864Z
 // 
 // Implementation details:
-// - Transform type: fan_out
+// - Transform type: enrich_async
 // - Language: JAVASCRIPT
-// - Function type: topic_transform
+// - Function type: valueTransform
 
 var StreamkapTransforms = (() => {
   var __create = Object.create;
@@ -10529,11 +10529,18 @@ function safeStringify(obj) {
     }
 }
 
-// Topic transform function using template structure
-function _streamkap_transform_topic(valueObject, keyObject, topic, timestamp) {
-    // Fan Out: Route records to different topics using template-based logic
-    var TopicTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.TopicTransform) || 
-                                (typeof topicTransform !== 'undefined' ? topicTransform : TopicTransform);
-    var transformer = typeof TopicTransformClass === 'function' ? new TopicTransformClass() : TopicTransformClass;
-    return transformer.transform(valueObject, keyObject, topic, timestamp);
+// Async enrichment transform using template structure
+async function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
+    // Enrich (Async): Enrich records with external API calls
+    try {
+        var ValueTransformClass = (typeof StreamkapTransforms !== 'undefined' && StreamkapTransforms.ValueTransform) || 
+                                  (typeof valueTransform !== 'undefined' ? valueTransform : ValueTransform);
+        var transformer = typeof ValueTransformClass === 'function' ? new ValueTransformClass() : ValueTransformClass;
+        var transformedRecord = await transformer.transformAsync(valueObject, keyObject, topic, timestamp);
+        
+        return transformedRecord;
+    } catch (error) {
+        console.error('Enrichment failed:', error);
+        return valueObject; // Return original on error
+    }
 }
