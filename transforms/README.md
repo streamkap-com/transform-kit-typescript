@@ -1,27 +1,25 @@
 # Generated Streamkap Transforms
 
-This directory contains self-contained transform bundles for Streamkap.
+These are Self-contained JavaScript files ready for deployment to Streamkap.
 
-Generated on: 2025-08-27T13:06:48.917Z
+## Files Structure
 
-## Key Features
+- **map-filter/**: Transform and filter records
+  - `valueTransform.js` - Main transform logic
+  - `keyTransform.js` - Key transformation
 
-- **Self-contained**: Each transform file includes all dependencies (moment.js bundled)
-- **Ready for Streamkap**: Upload directly to corresponding transform types
-- **TypeScript generated**: Clean, type-safe transforms compiled from TypeScript
-- **Individual & combined**: Both granular function files and combined transforms
+- **fan-out/**: Route records to multiple topics
+  - `valueTransform.js` - Value transformation for routing
+  - `topicTransform.js` - Topic routing logic
 
-## Usage Instructions
+- **enrich-async/**: Async enrichment transforms
+  - `valueTransform.js` - Async enrichment logic
 
-1. Select the appropriate transform file for your use case
-2. Upload to Streamkap in the corresponding transform type
-3. Configure input/output patterns and serialization
-4. Deploy and validate your transform
+- **un-nesting/**: Flatten nested structures  
+  - `valueTransform.js` - Flattening transform logic
 
-## Transform Function Signatures
+## Usage
 
-- `_streamkap_transform(valueObject, keyObject, topic, timestamp)` - Main transform
-- `_streamkap_transform_key(valueObject, keyObject, topic, timestamp)` - Key transformation
-- `_streamkap_transform_topic(valueObject, keyObject, topic, timestamp)` - Topic routing
+Copy the entire contents of the relevant .js file and paste it into your Streamkap transform implementation tab.
 
-All functions include comprehensive error handling and moment.js integration.
+Generated on: 2025-08-27T15:00:53.181Z

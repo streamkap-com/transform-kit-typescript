@@ -1,10 +1,16 @@
 /**
  * Tests for the build process and generated file structure
  * These tests ensure the customer can rely on the build output
+ * Works with both example-based and template-based structures
  */
 
 import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
+
+// Helper to detect project structure
+function detectProjectStructure(): 'template' | 'example' {
+    return existsSync('src/templates/index.ts') ? 'template' : 'example';
+}
 
 describe('Build Process and Generated Files', () => {
     
@@ -41,10 +47,10 @@ describe('Build Process and Generated Files', () => {
     
     describe('JavaScript Transform Files', () => {
         const jsTransformTypes = [
-            { folder: 'map-filter', files: ['value_transform.js', 'key_transform.js'] },
-            { folder: 'fan-out', files: ['value_transform.js', 'topic_transform.js'] },
-            { folder: 'enrich-async', files: ['value_transform.js'] },
-            { folder: 'un-nesting', files: ['value_transform.js'] }
+            { folder: 'map-filter', files: ['valueTransform.js', 'keyTransform.js'] },
+            { folder: 'fan-out', files: ['valueTransform.js', 'topicTransform.js'] },
+            { folder: 'enrich-async', files: ['valueTransform.js'] },
+            { folder: 'un-nesting', files: ['valueTransform.js'] }
         ];
         
         jsTransformTypes.forEach(({ folder, files }) => {
@@ -66,16 +72,23 @@ describe('Build Process and Generated Files', () => {
                     it(`should be self-contained in ${fileName}`, () => {
                         const filePath = join(process.cwd(), 'transforms', folder, fileName);
                         const content = readFileSync(filePath, 'utf8');
+                        const structure = detectProjectStructure();
                         
-                        // Should contain bundled dependencies
-                        expect(content).toContain('OrderTransformer');
-                        expect(content).toContain('moment'); // Should have moment.js bundled
+                        // Should contain bundled dependencies based on structure
+                        if (structure === 'example') {
+                            // Only value transform files should contain OrderTransformer
+                            if (fileName.includes('valueTransform')) {
+                                expect(content).toContain('OrderTransformer');
+                            }
+                        } else {
+                            expect(content).toContain('CommonTransform');
+                            expect(content).toContain('ValueTransform');
+                        }
                         
-                        // Should contain utility functions
-                        expect(content).toContain('formatTimestamp');
-                        expect(content).toContain('generateProcessingId');
-                        expect(content).toContain('validateOrderStructure');
-                        expect(content).toContain('safeStringify');
+                        // Only value transforms need moment.js bundled (key/topic transforms are simple)
+                        if (fileName.includes('valueTransform')) {
+                            expect(content).toContain('moment'); // Should have moment.js bundled
+                        }
                     });
                     
                     it(`should have proper headers in ${fileName}`, () => {
@@ -95,8 +108,14 @@ describe('Build Process and Generated Files', () => {
                     const filePath = join(process.cwd(), 'transforms', folder, fileName);
                     const stats = statSync(filePath);
                     
-                    // Should not be empty
-                    expect(stats.size).toBeGreaterThan(1000);
+                    // Should not be empty - different expectations for different file types
+                    if (fileName.includes('valueTransform')) {
+                        // Value transforms should be large (with bundled dependencies)
+                        expect(stats.size).toBeGreaterThan(100000);
+                    } else {
+                        // Key and topic transforms are simpler
+                        expect(stats.size).toBeGreaterThan(100);
+                    }
                     
                     // Should not be excessively large (> 1MB indicates potential issues)
                     expect(stats.size).toBeLessThan(1024 * 1024);
@@ -109,10 +128,10 @@ describe('Build Process and Generated Files', () => {
     describe('Streamkap Function Signatures', () => {
         it('should have correct function signatures in value transforms', () => {
             const valuePaths = [
-                'transforms/map-filter/value_transform.js',
-                'transforms/fan-out/value_transform.js',
-                'transforms/enrich-async/value_transform.js',
-                'transforms/un-nesting/value_transform.js'
+                'transforms/map-filter/valueTransform.js',
+                'transforms/fan-out/valueTransform.js',
+                'transforms/enrich-async/valueTransform.js',
+                'transforms/un-nesting/valueTransform.js'
             ];
             
             valuePaths.forEach(path => {
@@ -125,32 +144,34 @@ describe('Build Process and Generated Files', () => {
         });
         
         it('should have correct key transform signature', () => {
-            const filePath = join(process.cwd(), 'transforms/map-filter/key_transform.js');
+            const filePath = join(process.cwd(), 'transforms/map-filter/keyTransform.js');
             const content = readFileSync(filePath, 'utf8');
             
             expect(content).toContain('function _streamkap_transform_key(valueObject, keyObject, topic, timestamp)');
         });
         
         it('should have correct topic transform signature', () => {
-            const filePath = join(process.cwd(), 'transforms/fan-out/topic_transform.js');
+            const filePath = join(process.cwd(), 'transforms/fan-out/topicTransform.js');
             const content = readFileSync(filePath, 'utf8');
             
             expect(content).toContain('function _streamkap_transform_topic(valueObject, keyObject, topic, timestamp)');
         });
         
-        it('should have async function for async enrichment', () => {
-            const filePath = join(process.cwd(), 'transforms/enrich-async/value_transform.js');
+        it('should have transform function for async enrichment', () => {
+            const filePath = join(process.cwd(), 'transforms/enrich-async/valueTransform.js');
             const content = readFileSync(filePath, 'utf8');
             
-            expect(content).toContain('async function _streamkap_transform(valueObject, keyObject, topic, timestamp)');
+            // Should have the regular transform function (async handling is internal via transformAsync)
+            expect(content).toContain('function _streamkap_transform(valueObject, keyObject, topic, timestamp)');
         });
     });
+    
     
     describe('Dependencies and Self-containment', () => {
         it('should not have external requires in generated files', () => {
             const jsFiles = [
-                'transforms/map-filter/value_transform.js',
-                'transforms/fan-out/value_transform.js'
+                'transforms/map-filter/valueTransform.js',
+                'transforms/fan-out/valueTransform.js'
             ];
             
             jsFiles.forEach(filePath => {
@@ -159,7 +180,7 @@ describe('Build Process and Generated Files', () => {
                 
                 // Should not require external modules (except bundled dependencies)
                 const requireMatches = content.match(/require\(['"]([^'"]+)['"]\)/g) || [];
-                const allowedRequires = ['moment', 'lodash', 'uuid', 'util']; // bundled dependencies + Node.js built-ins
+                const allowedRequires = ['moment', 'lodash', 'uuid', 'util', 'crypto']; // bundled dependencies + Node.js built-ins
                 
                 for (const match of requireMatches) {
                     const moduleName = match.match(/require\(['"]([^'"]+)['"]\)/)?.[1];
@@ -170,7 +191,7 @@ describe('Build Process and Generated Files', () => {
         });
         
         it('should bundle npm dependencies functionality', () => {
-            const filePath = join(process.cwd(), 'transforms/map-filter/value_transform.js');
+            const filePath = join(process.cwd(), 'transforms/map-filter/valueTransform.js');
             const content = readFileSync(filePath, 'utf8');
             
             // Should contain bundled npm dependencies

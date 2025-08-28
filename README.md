@@ -1,39 +1,52 @@
 # Streamkap TypeScript Transform Development Kit
 
-TypeScript development environment for building Streamkap transforms with npm package support.
+**Build Streamkap transforms with TypeScript + npm packages** → Get **self-contained JavaScript files** ready for deployment.
 
-## What you get
-- Use npm packages like moment.js, lodash, uuid in your transforms
-- Full test suite to catch issues before deployment
-- Self-contained output files with all dependencies bundled
-- Support for all Streamkap transform types (map_filter, fan_out, enrich_async, un_nesting)
+## 🏪 **Example Use Case: Data Unification and Cleaning**
+Example of **cleaning and unifying multiple semi-structured data entities into a single common model** where:
+- **Different data formats** (`OrderType1` vs `OrderType2`) need to be unified into `MergedOrder`  
+- **Data flows from multiple sources** with varying structures and field names
+- **Records are enriched** and validated across different input sources
+- **Processing metadata is added** (timestamps, UUIDs, validation flags) using npm libraries
 
-## Quick Start Requirements
+## 📋 Prerequisites
+- Node.js 16+ 
+- Basic TypeScript knowledge
+- [Streamkap account](https://app.streamkap.com) for deployment
 
-**Important**: Always run `npm run build` before `npm test` - tests validate the generated output files.
+## ✨ What You Get
 
-**Prerequisites**: Node.js 16+, npm 8+
+- **npm packages** (moment.js, lodash, uuid) bundled automatically  
+- **Self-contained outputs** - no external dependencies needed
+- **All transform types** - map_filter, fan_out, enrich_async, un_nesting
+- **Complete test suite** to catch issues before deployment
+- **Two integration options** - new project or existing codebase
 
-## Quick Start
+## 🚀 Quick Start
 
+**For New Project**: Clone this repo and customize
 ```bash
-# 1. Install all dependencies
-npm install
-
-# 2. CRITICAL: Build first (generates transform files)
-npm run build
-
-# 3. Verify everything works
-npm test
-
-# 4. Your transform files are ready to copy-paste!
-ls -la transforms/
-# Copy these .js files into Streamkap's Implementation tab
+git clone https://github.com/streamkap-com/transform-kit-typescript.git && cd transform-kit-typescript
+npm install && npm test  # Builds all transforms and runs all tests
 ```
 
-You should see generated JavaScript files in `transforms/` ready for Streamkap deployment.
+**For Existing Project**: [See integration guide below](#option-2-existing-typescript-project)
 
-## How to Use This Project
+📋 **Common Info**: [Deployment](#deploy-to-streamkap) | [File Selection](#which-file-to-use) | [Troubleshooting](#troubleshooting)
+
+## 🎯 Choose Your Path
+
+### 🆕 **Option 1: New Project** (Start from scratch)
+Use this entire repository as your development environment
+
+### 🔄 **Option 2: Existing Project** (Add to your codebase)  
+Copy our bundler into your existing TypeScript project
+
+---
+
+# 🆕 Option 1: Starting from Scratch
+
+## How to Use This Project (Complete Example)
 
 ### 1. Customize Your Data Structures
 
@@ -92,11 +105,31 @@ npm install moment lodash uuid
 ### 4. Build & Test
 
 ```bash
-# IMPORTANT: Build first (tests depend on generated files)
+# Build all transforms
 npm run build
 
-# Then run tests to ensure everything works
-npm test
+# OR build specific transform types
+npm run build:map-filter     # Only map/filter transforms
+npm run build:fan-out        # Only fan-out transforms  
+npm run build:enrich-async   # Only async enrichment transforms
+npm run build:un-nesting     # Only un-nesting transforms
+
+# You can also use the build script directly
+node build-multiple.js --map-filter --fan-out  # Build multiple specific types
+node build-multiple.js --all                   # Build all transforms
+
+# Run tests
+npm test                     # Build all transforms, then test all
+npm test -- --map-filter     # Test only map/filter (uses existing builds)
+npm test -- --fan-out        # Test only fan-out (uses existing builds)
+npm test -- --enrich-async   # Test only async enrichment (uses existing builds)
+npm test -- --un-nesting     # Test only un-nesting (uses existing builds)
+
+# OR use specific test commands (builds first)
+npm run test:map-filter      # Build map/filter, then test it
+npm run test:fan-out         # Build fan-out, then test it
+npm run test:enrich-async    # Build enrich-async, then test it  
+npm run test:un-nesting      # Build un-nesting, then test it
 ```
 
 ### 5. Deploy to Streamkap
@@ -104,196 +137,265 @@ npm test
 1. **Create your transform** in Streamkap Web App
 2. **Navigate to Implementation tab** 
 3. **Copy entire contents** of your generated file:
-   - For value transforms: `valueTransform.js`
-   - For key transforms: `keyTransform.js`
-   - For topic transforms: `topicTransform.js`
+   - **Always required**: `valueTransform.js` 
+   - **Optional**: `keyTransform.js` (leave blank in Streamkap if no key changes needed)
+   - **Optional**: `topicTransform.js` (leave blank in Streamkap if no topic changes needed)
 4. **Paste into Streamkap's code editor** (replaces the default JavaScript)
 5. **Save and deploy** - your TypeScript code with all dependencies is now running!
 
-**Pro Tip**: The generated files are completely self-contained with all npm dependencies bundled in.
+📋 **Next Steps**: See [Common Reference](#common-reference) below for deployment instructions and file selection guide.
 
-## Generated Files Structure
+
+---
+
+# Option 2: Existing TypeScript Project
+
+Add Streamkap bundler to your existing codebase in 3 steps:
+
+## 1. Copy Files
+```bash
+# Copy bundler and transform files
+cp build-multiple.js your-project/
+cp test-selective.js your-project/
+mkdir -p your-project/src/
+cp src/value_transform.ts your-project/src/
+cp src/key_transform.ts your-project/src/
+cp src/topic_transform.ts your-project/src/
+# Optionally copy the example interfaces and transformer as reference
+cp src/OrderTransformer.ts your-project/src/ 
+cp src/Customer.ts your-project/src/
+cp src/OrderType1.ts your-project/src/
+cp src/OrderType2.ts your-project/src/
+cp src/MergedOrder.ts your-project/src/
+```
+
+## 2. Update package.json
+```json
+{
+  "scripts": {
+    "build": "node build-multiple.js --all",
+    "build:map-filter": "node build-multiple.js --map-filter",
+    "build:fan-out": "node build-multiple.js --fan-out",
+    "build:enrich-async": "node build-multiple.js --enrich-async",
+    "build:un-nesting": "node build-multiple.js --un-nesting",
+    "test": "node test-selective.js",
+    "test:map-filter": "npm run build:map-filter && node test-selective.js --map-filter"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "moment": "^2.30.1", 
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "@types/moment": "^2.11.29",
+    "@types/uuid": "^10.0.0",
+    "esbuild": "^0.8.27",
+    "typescript": "^4.0.0"
+  }
+}
+```
+
+## 3. Connect Your Logic
+
+Create your own OrderTransformer or update the existing one:
+
+```typescript
+// src/YourTransformer.ts
+import { YourService } from './your-existing-logic';
+
+export class YourTransformer {
+    private yourService = new YourService();
+    
+    public transform(input: any): any {
+        // Use your existing business logic
+        return this.yourService.processData(input);
+    }
+}
+```
+
+Then update the transform files to use your transformer:
+
+```typescript
+// src/value_transform.ts
+import { YourTransformer } from "./YourTransformer";
+
+export function _streamkap_transform(valueObject: any, keyObject: any, topic: any, timestamp: any) {
+    var transformer = new YourTransformer();
+    var transformedRecord = transformer.transform(valueObject);
+    return transformedRecord;
+}
+```
+
+## 4. Build & Deploy
+```bash
+# Install dependencies
+npm install
+
+# Build all transforms
+npm run build
+
+# OR build specific transforms only
+npm run build:map-filter                            # Build specific type
+node build-multiple.js --map-filter --enrich-async  # Build multiple types
+node build-multiple.js --all                        # Build all transforms
+
+# Check generated files
+ls transforms/  # Copy these .js files to Streamkap
+```
+
+**That's it!** Your transforms are generated in `transforms/` folder. 
+
+📋 **Next Steps**: See [Deploy to Streamkap](#deploy-to-streamkap) and [Which File to Use](#which-file-to-use) below.
+
+---
+
+---
+
+# 🔧 Option 3: Custom Setup
+
+For minimal changes, use just the bundler:
+
+```bash
+# Copy bundler only
+cp build-multiple.js your-project/
+
+# Add dependencies + script to package.json
+npm install lodash moment uuid esbuild
+```
+
+Write transforms directly using your existing services:
+```typescript
+// src/my-transform.ts  
+import { MyService } from './services/MyService';
+
+const service = new MyService();
+
+function _streamkap_transform(valueObject: any, keyObject: any, topic: string, timestamp: number) {
+    return service.processData(valueObject);
+}
+
+export { _streamkap_transform };
+```
+
+Build with esbuild directly:
+```bash
+npx esbuild src/my-transform.ts --bundle --outfile=my-transform.js
+```
+
+## When to Use Each Option
+
+| Use Case | Recommended Option |
+|----------|-------------------|
+| **New project** | Option 1 (from scratch) |
+| **Existing project** | Option 2 (templates) |  
+| **Minimal setup** | Option 3 (custom) |
+
+---
+
+# Common Reference
+
+## Which File to Use?
+
+| Transform Type | File to Copy | Purpose |
+|----------------|--------------|---------|
+| **map_filter** | `valueTransform.js` (**required**) | Transform and filter records |
+|                | `keyTransform.js` (*optional*) | Leave blank in Streamkap if no key changes needed |
+| **fan_out** | `valueTransform.js` (**required**) | Transform records for routing |
+|             | `topicTransform.js` (*optional*) | Leave blank in Streamkap if no topic changes needed |
+| **enrich_async** | `valueTransform.js` (**required**) | Enrich with external APIs |
+| **un_nesting** | `valueTransform.js` (**required**) | Flatten nested objects |
+
+💡 **Key Points**: 
+- **`valueTransform.js`** is **always required**
+- **`keyTransform.js`** and **`topicTransform.js`** are **optional** - leave blank in Streamkap if not needed
+
+## 📁 Generated Files Structure
 
 ```
 transforms/
 ├── map-filter/
-│   ├── value_transform.js
-│   ├── key_transform.js
-│   └── mapFilterTransform.js
+│   ├── valueTransform.js
+│   └── keyTransform.js
 ├── fan-out/
-│   ├── value_transform.js
-│   ├── topic_transform.js
-│   └── fanOutTransform.js
+│   ├── valueTransform.js
+│   └── topicTransform.js
 ├── enrich-async/
-│   ├── value_transform.js
-│   └── enrichAsyncTransform.js
+│   └── valueTransform.js
 └── un-nesting/
-    ├── value_transform.js
-    └── unNestingTransform.js
+    └── valueTransform.js
 ```
 
-Copy the complete contents of these files into Streamkap's Implementation tab.
+Each file is **completely self-contained** with all npm dependencies bundled inside.
 
-## Project Structure
+## Deploy to Streamkap
 
-```
-src/
-├── OrderTransformer.ts              # Main business logic
-├── OrderType1.ts                    # Input data structure
-├── OrderType2.ts                    # Alternative input structure  
-├── MergedOrder.ts                   # Output data structure
-├── Customer.ts                      # Customer data structure
-├── OrderTransformer.test.ts         # Core business logic tests
-├── GeneratedTransforms.test.ts      # Tests for generated files
-├── BuildProcess.test.ts             # Build process tests
-└── index.ts                         # Entry point
+1. **Create your transform** in Streamkap Web App
+2. **Navigate to Implementation tab** 
+3. **Copy entire contents** of your generated file (see table above)
+4. **Paste into Streamkap's code editor** (replaces the default JavaScript)
+5. **Save and deploy** - your TypeScript code with all dependencies is now running!
 
-build-multiple.js                    # Build system
-package.json                         # Dependencies and scripts
-transforms/                          # Generated output files
-```
+**Important**: Only paste the transforms you actually need - see [Which File to Use](#which-file-to-use) table above for details.
 
-## What Each Generated File Contains
-
-**Generated JavaScript files contain:**
-- Your compiled TypeScript business logic
-- Bundled npm dependencies with complete source included
-- Shared utility functions
-- Proper Streamkap function signatures
-- Self-contained with no external dependencies needed
-
-
-## Development workflow
-
-```bash
-# 1. Edit your business logic
-vim src/OrderTransformer.ts
-
-# 2. Add npm dependencies as needed
-npm install moment lodash uuid
-
-# 3. Build and test
-npm run build
-npm test
-
-# 4. Copy generated files to Streamkap and deploy
-```
-
-### Best practices
-- Write tests first, then implement
-- Commit TypeScript source files, not generated output
-- Only use pure JavaScript libraries (no native bindings)
-- Build → Test → Deploy cycle
-
-## Example: Map/Filter Transform
-
-Here's what gets generated for a map_filter transform:
-
-```javascript
-// transforms/map-filter/value_transform.js
-function _streamkap_transform(valueObject, keyObject, topic, timestamp) {
-    // Your OrderTransformer logic compiled to JavaScript
-    // moment.js bundled and available
-    // All utility functions included
-    // Ready to paste into Streamkap
-}
-```
-
-## Testing
-
-Includes tests covering:
-
-- Core business logic (`OrderTransformer.test.ts`)
-- Generated JavaScript files (`GeneratedTransforms.test.ts`)
-- Build process validation (`BuildProcess.test.ts`)
-
-Run tests: `npm test`
-
-## Usage notes
-- You might see npm warnings about deprecated packages during install - these don't affect functionality
-- Generated files are readable JavaScript if you need to debug
-
-## Supported Transform Types
-
-Generates code for JavaScript-based Streamkap transform types:
-- **`map_filter`** - Transform and filter records
-- **`fan_out`** - Route records to multiple topics  
-- **`enrich_async`** - Async data enrichment
-- **`un_nesting`** - Flatten nested objects
-
-## Features
-
-**Development:**
-- TypeScript with full type checking
-- npm ecosystem support (moment.js, lodash, etc.)
-- Unit testing with Jest
-- Standard development workflow
-
-**Output:**
-- All dependencies bundled into each file
-- No external dependencies needed
-- Proper function signatures for each transform type
-- Organized by transform type
-
-**Build:**
-- TypeScript compilation with esbuild
-- Automatic dependency bundling
-- Multiple output formats available
-
-## Adding Dependencies
-
-```bash
-# Only pure JavaScript libraries (no native extensions)
-npm install moment lodash uuid
-
-# Dependencies automatically get bundled into generated files
-npm run build
-```
-
-## Production Guidelines
+## 🛠️ Production Guidelines
 
 ### Dependency Requirements
-**NOT Supported**: Native extensions, binaries, or Node.js-specific APIs  
-**Fully Supported**: Pure JavaScript libraries (moment, lodash, uuid, etc.)
+**✅ Fully Supported**: Pure JavaScript libraries (moment, lodash, uuid, etc.)  
+**❌ NOT Supported**: Native extensions, binaries, or Node.js-specific APIs
 
-### Deployment Architecture
-**Self-Contained**: Each generated file includes ALL dependencies bundled (no external requires)  
-**Copy-Paste Ready**: Files are designed for direct paste into Streamkap's code editor  
-**Function Signatures**: Generated code follows Streamkap's exact convention requirements
-
-### Security & Performance
-- All dependencies are statically bundled
-- Fast compilation with minimal bundle sizes
-- Well-tested codebase
+### Architecture
+- **Self-Contained**: Each generated file includes ALL dependencies bundled
+- **Copy-Paste Ready**: Files are designed for direct paste into Streamkap's code editor
+- **Function Signatures**: Generated code follows Streamkap's exact convention requirements
 
 ## Troubleshooting
 
-### Common issues
-
 **Tests failing?**
 ```bash
-# Build first - tests validate generated files
-npm run build
+npm run build  # Build first - tests validate generated files
 npm test -- --verbose
 ```
 
 **Build errors?**
 ```bash
-# Check for TypeScript or dependency issues
-npm run build 2>&1 | grep -i error
 npm install
+npm run build 2>&1 | grep -i error
+```
+
+**Only need specific transforms?**
+```bash
+# Build individual transform types for faster development
+npm run build:map-filter      # Only builds map/filter transforms
+npm run test:enrich-async     # Builds and tests async enrichment
+
+# Test without building (uses existing builds)
+npm test -- --map-filter     # Test only map/filter transforms
+npm test -- --fan-out --un-nesting  # Test multiple specific types
+
+# Build multiple specific types
+node build-multiple.js --fan-out --un-nesting
+
+# Available types: --map-filter, --fan-out, --enrich-async, --un-nesting, --all
 ```
 
 **Streamkap deployment errors?**
 - Copy complete file contents (including all bundled dependencies)
 - Check Streamkap's error console for runtime issues
-- Verify function signatures match expected format
 - Test locally with `npm test` before deploying
 
-**Need custom transform types?**
-- Edit `build-multiple.js` to add/remove transform variants
-- Update corresponding test files in `src/`
-- Rebuild and test
+**Dependencies not working?**
+- Only use pure JavaScript libraries (no native extensions)
+- Check if library is compatible with browser environment
+
+## 📚 Transform Types Supported
+
+- **`map_filter`** - Transform and filter records
+- **`fan_out`** - Route records to multiple topics  
+- **`enrich_async`** - Async data enrichment
+- **`un_nesting`** - Flatten nested objects
+
+---
 
 ### Documentation
 - [Streamkap docs](https://docs.streamkap.com)

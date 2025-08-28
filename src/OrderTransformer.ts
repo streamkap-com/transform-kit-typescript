@@ -11,20 +11,19 @@ export class OrderTransformer {
             return this.transformOrderType1(inputOrder as OrderType1);
         }
         return this.transformOrderType2(inputOrder as OrderType2);
-
     }
 
     private transformOrderType1(inputOrder: OrderType1): MergedOrder {
         const now = moment();
         
-        // Example using lodash for data manipulation
+        // Data manipulation
         const cleanedOrder = _.omitBy(inputOrder, _.isUndefined);
         const hasValidCustomer = _.has(cleanedOrder, 'customer.name') && !_.isEmpty(cleanedOrder.customer.name);
         
-        // Example using uuid for unique identifiers
+        // Generate unique identifiers
         const processingId = uuidv4();
         
-        return {
+        let baseRecord: MergedOrder = {
             version: '0.1.4',
             _id: inputOrder._id,
             order_number: inputOrder.order_number,
@@ -35,23 +34,26 @@ export class OrderTransformer {
             organization_id: inputOrder.organization_id,
             processed_at: now.toISOString(),
             processed_time: now.format('YYYY-MM-DD HH:mm:ss'),
-            // Examples of using npm dependencies:
-            processing_id: processingId, // uuid generated
-            has_valid_customer: hasValidCustomer, // lodash validation
-            field_count: _.keys(cleanedOrder).length, // lodash utility
+            // Processing metadata:
+            processing_id: processingId,
+            has_valid_customer: hasValidCustomer,
+            field_count: _.keys(cleanedOrder).length,
         };
+        
+        // Apply type-specific modifications
+        return this.applyTransformTypeModifications(baseRecord);
     }
     private transformOrderType2(inputOrder: OrderType2): MergedOrder {
         const now = moment();
         
-        // Example using lodash for data manipulation
+        // Data manipulation
         const cleanedOrder = _.omitBy(inputOrder, _.isUndefined);
         const hasValidCustomer = _.has(cleanedOrder, 'customer.name') && !_.isEmpty(cleanedOrder.customer.name);
         
-        // Example using uuid for unique identifiers
+        // Generate unique identifiers
         const processingId = uuidv4();
         
-        return {
+        let baseRecord: MergedOrder = {
             version: '0.1.4',
             _id: inputOrder.order_id,
             order_number: inputOrder.order_number,
@@ -62,10 +64,19 @@ export class OrderTransformer {
             organization_id: inputOrder.customer.organization_id,
             processed_at: now.toISOString(),
             processed_time: now.format('YYYY-MM-DD HH:mm:ss'),
-            // Examples of using npm dependencies:
-            processing_id: processingId, // uuid generated
-            has_valid_customer: hasValidCustomer, // lodash validation
-            field_count: _.keys(cleanedOrder).length, // lodash utility
+            // Processing metadata:
+            processing_id: processingId,
+            has_valid_customer: hasValidCustomer,
+            field_count: _.keys(cleanedOrder).length,
         };
+        
+        // Apply type-specific modifications
+        return this.applyTransformTypeModifications(baseRecord);
     }
+
+    private applyTransformTypeModifications(record: MergedOrder): MergedOrder {
+        // Add any common modifications here
+        return record;
+    }
+
 }

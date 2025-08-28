@@ -1,164 +1,182 @@
-// build-multiple.js
-// This script generates multiple transform bundle outputs for Streamkap
-
+// Streamkap Transform Builder
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// Transform types aligned with actual Streamkap implementation
+function parseArgs() {
+    const args = process.argv.slice(2);
+    const requestedTypes = new Set();
+    let buildAll = false;
+
+    if (args.length === 0 || args.includes('--all')) {
+        buildAll = true;
+    } else {
+        for (const arg of args) {
+            if (arg.startsWith('--')) {
+                const type = arg.substring(2).replace('-', '_');
+                requestedTypes.add(type);
+            }
+        }
+    }
+
+    return { requestedTypes, buildAll };
+}
+
+// Transform type configurations
 const transforms = [
     {
-        name: 'mapFilterTransform',
         type: 'map_filter',
-        language: 'JAVASCRIPT',
-        description: 'Map/Filter transform - modify and filter records',
-        functions: ['value_transform', 'key_transform'],
-        folder: 'map-filter'
+        folder: 'map-filter',
+        files: [
+            { src: 'src/value_transform.ts', out: 'valueTransform.js' },
+            { src: 'src/key_transform.ts', out: 'keyTransform.js' }
+        ]
     },
     {
-        name: 'fanOutTransform',
         type: 'fan_out',
-        language: 'JAVASCRIPT',
-        description: 'Fan Out - route records to multiple topics',
-        functions: ['value_transform', 'topic_transform'],
-        folder: 'fan-out'
+        folder: 'fan-out',
+        files: [
+            { src: 'src/value_transform.ts', out: 'valueTransform.js' },
+            { src: 'src/topic_transform.ts', out: 'topicTransform.js' }
+        ]
     },
     {
-        name: 'enrichAsyncTransform',
         type: 'enrich_async',
-        language: 'JAVASCRIPT',
-        description: 'Async Enrich - enrich records with REST API calls',
-        functions: ['value_transform'],
-        folder: 'enrich-async'
+        folder: 'enrich-async',
+        files: [
+            { src: 'src/value_transform.ts', out: 'valueTransform.js' }
+        ]
     },
     {
-        name: 'unNestingTransform',
         type: 'un_nesting',
-        language: 'JAVASCRIPT',
-        description: 'Un Nesting - flatten nested objects/arrays',
-        functions: ['value_transform'],
-        folder: 'un-nesting'
+        folder: 'un-nesting',
+        files: [
+            { src: 'src/value_transform.ts', out: 'valueTransform.js' }
+        ]
     }
 ];
 
+function generateFileHeader(transformType, fileName) {
+    const timestamp = new Date().toISOString();
+    return `// Streamkap ${transformType} Transform - ${fileName}
+// Generated on: ${timestamp}
+// Self-contained bundle with all dependencies
 
-function removeModuleWrapper(transformCode) {
-    // Remove IIFE wrapper and clean up
-    transformCode = transformCode.replace(/^"use strict";\s*\n?/, '');
-    transformCode = transformCode.replace(/^\(\(\)\s*=>\s*\{\s*\n/, '');
-    transformCode = transformCode.replace(/\s*\}\)\(\);?\s*$/, '');
-    transformCode = transformCode.split('\n').map(line => line.replace(/^  /, '')).join('\n');
-    transformCode = transformCode.trim();
-    return transformCode;
+`;
 }
 
-async function buildTransforms() {
-    console.log('🏗️  Building multiple Streamkap transform bundles...\n');
+function buildTransformFunction(outputDir, tmpDir, srcFile, outFile) {
+    console.log(`   📄 Generating ${outFile}`);
+    
+    try {
+        execSync(`npx esbuild ${srcFile} --bundle --outfile=${tmpDir}/${outFile} --format=cjs --platform=node --target=es2018`, {
+            stdio: 'pipe'
+        });
+        
+        let transformCode = fs.readFileSync(`${tmpDir}/${outFile}`, 'utf8');
+        let fileName = `${outputDir}/${outFile}`;
+        let code = generateFileHeader(path.basename(outputDir), outFile) + transformCode;
+        fs.writeFileSync(fileName, code);
+        
+        console.log(`   ✅ Generated ${outFile}`);
+    } catch (error) {
+        console.error(`   ❌ Failed to generate ${outFile}:`, error.message);
+    }
+}
 
-    // Create output directory structure
-    const outputDir = 'transforms';
+function buildTransform(transform) {
+    const outputDir = path.join('transforms', transform.folder);
     const tmpDir = '.tmp.build';
+    
     if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
     }
-    if (!fs.existsSync(tmpDir)) {
-        fs.mkdirSync(tmpDir, { recursive: true });
+
+    console.log(`🔄 Building ${transform.type} transforms...`);
+    console.log(`   📁 ${transform.folder}/`);
+
+    for (const file of transform.files) {
+        if (fs.existsSync(file.src)) {
+            buildTransformFunction(outputDir, tmpDir, file.src, file.out);
+        } else {
+            console.log(`   ⚠️  Skipping ${file.out} - ${file.src} not found`);
+        }
     }
-
-    // First build the main bundle
-    buildTransformFunction(outputDir, tmpDir, 'value_transform');
-    buildTransformFunction(outputDir, tmpDir, 'key_transform');
-    buildTransformFunction(outputDir, tmpDir, 'topic_transform');
-
-    // Create README for generated folder
-    generateOutputReadme(outputDir);
-
-    console.log('🎉 All transform bundles generated successfully!');
-    console.log(`📁 Output directory: ${outputDir}/`);
-
 }
 
-function buildTransformFunction(outputDir, tmpDir, funcType) {
+function createREADME() {
+    const readmePath = path.join('transforms', 'README.md');
+    const readmeContent = `# Generated Streamkap Transforms
 
-    // Clean up previous temporary build file
-    try {
-        fs.unlinkSync(`${tmpDir}/${funcType}.js`);
-    } catch (e) {
-        // Ignore if file doesn't exist
-    }    
+These are Self-contained JavaScript files ready for deployment to Streamkap.
 
-    console.log(`📦 Building ${funcType} TypeScript bundle...`);
-    try {
-        execSync(`npx esbuild src/${funcType}.ts --bundle --platform=browser --target=es2015 --outfile=${tmpDir}/${funcType}.js`, { stdio: 'inherit' });
-    } catch (error) {
-        console.error(`❌ Failed to build ${funcType} bundle`);
-        process.exit(1);
-    }
+## Files Structure
 
-    // Read value_transform.js and process it
-    let transformCode = fs.readFileSync(`${tmpDir}/${funcType}.js`, 'utf8');
-    let fileName = `${outputDir}/${funcType}.js`;
-    console.log(`   📄 Generating ${fileName}`);
-    let code = generateFileHeader(funcType) + removeModuleWrapper(transformCode);
-    fs.writeFileSync(fileName, code);
-    console.log(`   ✅ Generated successfully`);
+- **map-filter/**: Transform and filter records
+  - \`valueTransform.js\` - Main transform logic
+  - \`keyTransform.js\` - Key transformation
 
-}
+- **fan-out/**: Route records to multiple topics
+  - \`valueTransform.js\` - Value transformation for routing
+  - \`topicTransform.js\` - Topic routing logic
 
-// Helper functions for new structure
-function generateFileHeader(funcType) {
-    return `// Streamkap transforms
-// Function: ${funcType}
-// Generated on: ${new Date().toISOString()}
+- **enrich-async/**: Async enrichment transforms
+  - \`valueTransform.js\` - Async enrichment logic
 
+- **un-nesting/**: Flatten nested structures  
+  - \`valueTransform.js\` - Flattening transform logic
+
+## Usage
+
+Copy the entire contents of the relevant .js file and paste it into your Streamkap transform implementation tab.
+
+Generated on: ${new Date().toISOString()}
 `;
+    
+    fs.writeFileSync(readmePath, readmeContent);
 }
 
-function generateSqlHeader(transform) {
-    return `-- Streamkap ${transform.type} Transform (SQL)
--- ${transform.description}
--- Generated on: ${new Date().toISOString()}
--- 
--- This SQL query is used for ${transform.type} transforms in Streamkap
-
-`;
-}
-
-function validateFile(filePath) {
-    try {
-        require.resolve('./' + filePath);
-        console.log(`   ✅ Generated successfully`);
-    } catch (e) {
-        console.log(`   ⚠️  Generated (syntax validation skipped)`);
+function main() {
+    const { requestedTypes, buildAll } = parseArgs();
+    
+    // Filter transforms based on what was requested
+    let transformsToBuild = transforms;
+    if (!buildAll) {
+        transformsToBuild = transforms.filter(t => requestedTypes.has(t.type));
+        
+        if (transformsToBuild.length === 0) {
+            console.log('❌ No valid transform types specified.');
+            console.log('Available types: --map-filter, --fan-out, --enrich-async, --un-nesting, --all');
+            process.exit(1);
+        }
     }
+
+    console.log('🏗️  Streamkap Transform Builder');
+    console.log(`📋 Building: ${buildAll ? 'all transforms' : transformsToBuild.map(t => t.type).join(', ')}`);
+    console.log('');
+
+    // Ensure directories exist
+    if (!fs.existsSync('transforms')) {
+        fs.mkdirSync('transforms', { recursive: true });
+    }
+    if (!fs.existsSync('.tmp.build')) {
+        fs.mkdirSync('.tmp.build', { recursive: true });
+    }
+
+    // Build selected transforms
+    for (const transform of transformsToBuild) {
+        buildTransform(transform);
+    }
+
+    // Create README
+    createREADME();
+    
+    // Clean up temp directory
+    fs.rmSync('.tmp.build', { recursive: true, force: true });
+    
+    console.log('');
+    console.log('✅ Build complete!');
+    console.log('📁 Check the transforms/ directory for generated files');
 }
 
-function generateOutputReadme(outputDir) {
-    let readmeContent = '# Generated Streamkap Transforms\n\n';
-    readmeContent += 'This directory contains self-contained transform bundles for Streamkap.\n\n';
-    readmeContent += 'Generated on: ' + new Date().toISOString() + '\n\n';
-    
-    readmeContent += '## Key Features\n\n';
-    readmeContent += '- **Self-contained**: Each transform file includes all dependencies (moment.js bundled)\n';
-    readmeContent += '- **Ready for Streamkap**: Upload directly to corresponding transform types\n';
-    readmeContent += '- **TypeScript generated**: Clean, type-safe transforms compiled from TypeScript\n';
-    readmeContent += '- **Individual & combined**: Both granular function files and combined transforms\n\n';
-    
-    readmeContent += '## Usage Instructions\n\n';
-    readmeContent += '1. Select the appropriate transform file for your use case\n';
-    readmeContent += '2. Upload to Streamkap in the corresponding transform type\n';
-    readmeContent += '3. Configure input/output patterns and serialization\n';
-    readmeContent += '4. Deploy and validate your transform\n\n';
-    
-    readmeContent += '## Transform Function Signatures\n\n';
-    readmeContent += '- `_streamkap_transform(valueObject, keyObject, topic, timestamp)` - Main transform\n';
-    readmeContent += '- `_streamkap_transform_key(valueObject, keyObject, topic, timestamp)` - Key transformation\n';
-    readmeContent += '- `_streamkap_transform_topic(valueObject, keyObject, topic, timestamp)` - Topic routing\n\n';
-    
-    readmeContent += 'All functions include comprehensive error handling and moment.js integration.\n';
-
-    fs.writeFileSync(path.join(outputDir, 'README.md'), readmeContent);
-}
-
-// Run the build
-buildTransforms().catch(console.error);
+main();

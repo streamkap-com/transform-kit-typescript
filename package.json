@@ -12,10 +12,19 @@
     "url": "https://github.com/streamkap-com/transform-kit-typescript/issues"
   },
   "scripts": {
-    "build": "node build-multiple.js",
-    "test": "jest",
+    "build": "node build-multiple.js --all",
+    "build:map-filter": "node build-multiple.js --map-filter",
+    "build:fan-out": "node build-multiple.js --fan-out",
+    "build:enrich-async": "node build-multiple.js --enrich-async",
+    "build:un-nesting": "node build-multiple.js --un-nesting",
+    "bundle:streamkap": "node build-multiple.js",
+    "test": "node test-selective.js",
+    "test:map-filter": "npm run build:map-filter && node test-selective.js --map-filter",
+    "test:fan-out": "npm run build:fan-out && node test-selective.js --fan-out", 
+    "test:enrich-async": "npm run build:enrich-async && node test-selective.js --enrich-async",
+    "test:un-nesting": "npm run build:un-nesting && node test-selective.js --un-nesting",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "npm run build && jest --coverage"
   },
   "dependencies": {
     "lodash": "^4.17.21",
