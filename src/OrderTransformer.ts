@@ -1,3 +1,7 @@
+// 🧪 TESTING WITH REAL DATA:
+// Use "Copy Record as JSON" from Streamkap Topics page to test with actual production records.
+// See JSONRecord.test.ts for examples of testing with copied JSON records.
+
 import { MergedOrder } from "./MergedOrder";
 import { OrderType1 } from "./OrderType1";
 import { OrderType2 } from "./OrderType2";
