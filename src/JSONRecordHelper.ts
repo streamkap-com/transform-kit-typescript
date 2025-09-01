@@ -11,8 +11,8 @@
  */
 
 export interface StreamkapRecord {
-    key: any;
-    value: any;
+    key?: any;
+    value?: any;
     keySchema?: any;
     valueSchema?: any;
     headers?: Record<string, any>;
