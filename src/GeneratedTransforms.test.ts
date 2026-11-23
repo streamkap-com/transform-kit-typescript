@@ -61,7 +61,7 @@ try {
     // Read the transform bundle
     const transformCode = fs.readFileSync(${JSON.stringify(filePath)}, 'utf8');
     
-    // Create a VM context with necessary globals and better module support
+    // Create a VM context with necessary globals
     const context = {
         console: console,
         require: require,
@@ -74,8 +74,8 @@ try {
         crypto: require('crypto'),
         global: {},
         globalThis: {},
+        // The Streamkap runtime evaluates the bundle with only exports defined, so no module here.
         exports: {},
-        module: { exports: {} },
         __filename: ${JSON.stringify(filePath)},
         __dirname: require('path').dirname(${JSON.stringify(filePath)})
     };
@@ -95,12 +95,6 @@ try {
         // Try global/globalThis exports
         transformFn = context.global[${JSON.stringify(functionName)}] || 
                       context.globalThis[${JSON.stringify(functionName)}];
-        
-        // Try module.exports
-        if (typeof transformFn !== 'function' && context.module && context.module.exports) {
-            transformFn = context.module.exports[${JSON.stringify(functionName)}] || 
-                          context.module.exports;
-        }
         
         // Try exports
         if (typeof transformFn !== 'function' && context.exports) {
