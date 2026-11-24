@@ -1,5 +1,9 @@
 // valueTransform.ts - Main value transformation logic
 // This is the primary transform function that processes record values
+//
+// 🧪 TESTING WITH REAL DATA:
+// Use the "Copy Record as JSON" button from Streamkap Topics page to get real records for testing.
+// See JSONRecord.test.ts and JSONRecordHelper.ts for comprehensive testing examples.
 
 import { CommonTransform } from './commonTransform';
 
